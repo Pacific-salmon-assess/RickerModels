@@ -1,0 +1,127 @@
+ \documentclass{article}
+
+%% Compile this with
+%% R> library(pgfSweave)
+%% R> pgfSweave
+%\usepackage[nogin]{Sweave} %way to understand R code
+\usepackage{pgf} 
+
+%look it up
+\usepackage{tikz} 
+
+% allows R code or other stuff in the figure labels
+\usepackage{subfigure} 
+
+% allows to have subfigures
+\usepackage{color} 
+
+%colored text!
+\usepackage[left=1.2in,right=1.2in,top=1.2in,bottom=1.2in]{geometry} 
+
+% sets the margins
+\usepackage{fancyhdr} 
+\usepackage{setspace} 
+\usepackage{indentfirst} 
+\usepackage{titlesec} 
+\usepackage{natbib} 
+\usepackage{sectsty}
+\usepackage{listings}
+\usepackage[section]{placeins}
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{float}
+\usepackage[hyphens]{url}
+
+
+\newcommand{\lang}{\textsf} 
+
+%
+\newcommand{\code}{\texttt} 
+\newcommand{\pkg}{\texttt} 
+\newcommand{\ques}[1]{{\bf\large#1}} 
+\newcommand{\eb}{\\
+\nonumber} 
+
+
+%% The following is used for tables of equations.
+\newcounter{saveEq} 
+\def\putEq{\setcounter{saveEq}{\value{equation}}} 
+\def\getEq{\setcounter{equation}{\value{saveEq}}} 
+\def 
+\tableEq{ 
+
+% equations in tables
+\putEq \setcounter{equation}{0} 
+\renewcommand{\theequation}{T\arabic{table}.\arabic{equation}} \vspace{-5mm} } 
+\expandafter\def\expandafter\UrlBreaks\expandafter{\UrlBreaks%  save the current one
+  \do\a\do\b\do\c\do\d\do\e\do\f\do\g\do\h\do\i\do\j%
+  \do\k\do\l\do\m\do\n\do\o\do\p\do\q\do\r\do\s\do\t%
+  \do\u\do\v\do\w\do\x\do\y\do\z\do\A\do\B\do\C\do\D%
+  \do\E\do\F\do\G\do\H\do\I\do\J\do\K\do\L\do\M\do\N%
+  \do\O\do\P\do\Q\do\R\do\S\do\T\do\U\do\V\do\W\do\X%
+  \do\Y\do\Z}
+
+
+\def\normalEq{ 
+
+% renew normal equations
+\getEq 
+\renewcommand{\theequation}{\arabic{section}.\arabic{equation}}}
+\newcommand{\normal}[2]{\ensuremath{N(#1,#2)}}
+
+
+\doublespacing 
+
+
+\title{Stock recruitment analysis for Harrison river chinook salmom} 
+\author{Catarina Wor} 
+\sectionfont{
+\fontsize{12}{12}\selectfont}
+\lstset{ language={[LaTeX]TeX},
+      escapeinside={{(*@}{@*)}}, 
+       gobble=0,
+       stepnumber=1,numbersep=5pt, 
+       numberstyle={\footnotesize\color{gray}},%firstnumber=last,
+      breaklines=true,
+      framesep=5pt,
+      basicstyle=\small\ttfamily,
+      showstringspaces=false,
+      keywordstyle=\ttfamily\textcolor{blue},
+      stringstyle=\color{orange},
+      commentstyle=\color{black},
+      rulecolor=\color{gray!10},
+      breakatwhitespace=true,
+      showspaces=false,  % shows spacing symbol
+      backgroundcolor=\color{gray!15}}
+
+
+%\pgfrealjobname{pgfSweave-vignette}
+%pgfSweave-vignette
+\begin{document}
+\maketitle
+
+\tableofcontents
+
+\section{Background}
+
+\section{Data}
+
+\subsection{questions for Gayle sbout raw data}
+
+\begin{enumerate}
+  \item Why is the adjusted Adult escapement, adjusted by the average and not by the obeservation?
+\end{enumerate}
+
+\bibliographystyle{cell} 
+\bibliography{MyLibrary.bib}
+
+
+\end{document}
+
+
+
+
+
+%fn+control+alt+del for clean up!

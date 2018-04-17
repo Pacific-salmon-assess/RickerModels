@@ -1,0 +1,25 @@
+
+# data files #
+##############
+data
+*.csv
+*.xls
+*.xlsx
+*.csv
+*.doc
+*.docx
+
+# logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+
+# R stuff #
+###########
+*.Rhistory
+*.Rdata
+
+#Latex Stuf#
+############
+*
