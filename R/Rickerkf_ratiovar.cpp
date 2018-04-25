@@ -20,24 +20,34 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(obs_logR);   // observed log recruitment
   DATA_VECTOR(obs_S);    // observed  Spawner
   
+  //logbeta     -> log of beta from ricker curve
+  //alphao      -> initial alpha value
+  //rho         -> Proportion of total variance associated with obs error.
+  //varphi      -> Total precision
+  //alpha       -> Time-varying alpha
+
   PARAMETER(alphao);
   PARAMETER(logbeta);
- 
-  PARAMETER(logSigalpha);
-  PARAMETER(logSigObs);
+  PARAMETER(rho);
+  PARAMETER(logvarphi);
 
   PARAMETER_VECTOR(alpha);
+  
+
   
   int timeSteps=obs_logR.size();
 
   Type beta=exp(logbeta);
-  
-  Type Sigalpha=exp(logSigalpha);
-  Type SigObs=exp(logSigObs);
   Type Smax  = Type(1.0)/beta;
-
-  //Type tauR = Type(1.0)/SigObs;
-  //Type taualpha = Type(1.0)/Sigalpha;
+  
+  //theta       -> total standard deviation
+  //sig         -> obs error std
+  //tau         -> proc error (alpha) std
+  
+  Type varphi     = exp(logvarphi);
+  Type theta     = sqrt(Type(1.0)/varphi);
+  Type sig       = sqrt(rho) * theta;
+  Type tau       = sqrt(Type(1.0)-rho) * theta ;
 
 
   vector<Type> pred_logR(timeSteps), logRS(timeSteps);
@@ -48,14 +58,18 @@ Type objective_function<Type>::operator() ()
   //Type ans= -dgamma(tauR,Type(0.01),Type(0.00001),true);  
   //ans+= -dgamma(taualpha,Type(0.01),Type(0.00001),true); 
 
-  Type ans= -dnorm(logSigalpha,Type(0.0),Type(1.0),true);  
-  ans+= -dnorm(logSigObs,Type(0.0),Type(1.0),true); 
+  //priors on precision and variance ratio
+  Type ans= -dbeta(rho,Type(3.0),Type(3.0),true);  
+  ans+= -dnorm(logvarphi,Type(0.0),Type(5.0),true);   
+  //ans+= -dgamma(varphi,Type(0.001),Type(0.001),true);   
 
-  ans+= -dnorm(alpha(0),alphao,Sigalpha,true); 
+  
+
+  ans+= -dnorm(alpha(0),alphao,tau,true); 
   
   for(int i=1;i<timeSteps;i++){
   
-    ans+= -dnorm(alpha(i),alpha(i-1),Sigalpha,true);
+    ans+= -dnorm(alpha(i),alpha(i-1),tau,true);
   
   }
 
@@ -63,16 +77,18 @@ Type objective_function<Type>::operator() ()
     if(!isNA(obs_logR(i))){
       logRS(i) = alpha(i) - beta * obs_S(i) ;
       pred_logR(i) = logRS(i) + log(obs_S(i)); 
-      ans+=-dnorm(obs_logR(i),pred_logR(i),SigObs,true);
+      ans+=-dnorm(obs_logR(i),pred_logR(i),sig,true);
     }
   
   }
 
   REPORT(pred_logR)
   REPORT( alpha)
-  REPORT(SigObs)
-  REPORT(Sigalpha)
+  REPORT(sig)
+  REPORT(tau)
+  REPORT(rho)
   REPORT(beta)
+  REPORT(varphi)
   REPORT(alphao)
   REPORT(Smax)
   return ans;
