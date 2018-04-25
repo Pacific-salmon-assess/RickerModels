@@ -25,9 +25,12 @@ Ri <- SR$R[!is.na(SR$Age2Surv)]
 log_RS <- log(SR$R/Si)[!is.na(SR$Age2Surv)]
 Surv<-SR$Age2Surv[!is.na(SR$Age2Surv)]
 PHatch<-SR$Prop_Hatchery[!is.na(SR$Age2Surv)]
+byr<-SR$BroodYear[!is.na(SR$Age2Surv)]
 
+plot(byr,Surv, type="b",lwd=2)
 ##### Ricker S/R model: log(R/S)=a+bS #####
 
+lm(log(SR$R/SR$S_adj)~ SR$S_adj)
 
 mod1<-lm(log_RS~Si)
 mod2<-lm(log_RS~Si+Surv)
@@ -87,7 +90,7 @@ p
 
 
 
-
+plot(SR$BroodYear,SR$Age2Surv, type="b", lwd=2)
 
 
 

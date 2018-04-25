@@ -34,6 +34,10 @@
 \usepackage{float}
 \usepackage[hyphens]{url}
 
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+
 
 \newcommand{\lang}{\textsf} 
 
@@ -106,16 +110,150 @@
 
 \section{Background}
 
+Estimation of Ricker stock recruitment parameters for the Harrison Chinook stock. 
+
+
+
 \section{Data}
+ The data for this model is in the file named Harrison\textunderscore simples\textunderscore Apr18.csv. The survival data has a missing observation in the 2004 brood year therefore that year was not inlcuded in the analysis that contains survival data.
 
-\subsection{questions for Gayle sbout raw data}
+\section{Models}
 
-\begin{enumerate}
-  \item Why is the adjusted Adult escapement, adjusted by the average and not by the obeservation?
-\end{enumerate}
+Three models formulations were explored, the tradional Ricker function, a Ricker function including the survival data up to age 2, and a Kalman filter model including random walk in the alpha parameter.
 
-\bibliographystyle{cell} 
-\bibliography{MyLibrary.bib}
+
+\subsection{Ricker model}
+
+We used the traditional linear formulation of the Ricker function:
+
+\begin{align} 
+R_t &= S_t \cdot \alpha \cdot e^{(-b\cdot S_t + w_t)}  \\ 
+log\frac{R_t}{S_t} &= a-b\cdot S_t + w_t \\
+S_{max} &= \frac{1}{b}\\
+\alpha &= e^{a}
+w_t \sim \mathcal{N}(0,\sigma_R)
+\end{align}
+
+The estimated parameters are in table \ref{estparsimple} and the model fit is shown in figure \ref{simple_fit}.
+
+\begin{table}[ht]
+\centering
+\caption{Parameter estimates for traditional ricker model.}\label{estparsimple} 
+\begin{tabular}{lrrrr}
+  \hline
+  Patameter& MLE & median & lower (2.5\%) & upper (97.5\%)\\ 
+  \hline
+ $a$ & 1.275813  &  -   &  - & - \\ 
+ $b$ & 6.736549e-06  & - & - & -\\ 
+ $\alpha$ & 3.581611  & - & - & -\\ 
+ $S_{max}$ & 148444  & - & - & -\\ 
+   \hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=.52]{../figs/simple_model_fit.pdf}
+  \caption{Traditional Ricker model fit for the Harrison stock. Individual observations are represented by the years text on the graph.}
+\label{simple_fit}
+\end{figure}
+
+
+\subsection{Ricker model and kalman filter for time-varying $a$}
+
+We used following formulation of the Ricker function:
+
+\begin{align} 
+R_t &= S_t \cdot \alpha_t \cdot e^{(-b\cdot S_t + w_t)}   \\ 
+log\frac{R_t}{S_t} &= a_t-b\cdot S_t + w_t\\
+\alpha_t &= e^{a_t} \\
+S_{max} &= \frac{1}{b} \\
+w_t &\sim \mathcal{N}(0,\sigma_R)
+\end{align}
+
+The variability in the parameter $a_t$ is given by a Kalman filter function in which:
+
+\begin{align} 
+\begin{cases}
+a_t = a_0 + v_0 &\quad t=0 \\
+a_t = a_{t-1} + v_t &\quad t>0 \\
+v_t \sim \mathcal{N}(0,\sigma_v)
+\end{cases}
+\end{align}
+
+
+The $alpha$ parameters were treated as random effects in the estimation model. The estimated parameters are in table \ref{estparkf} and the model fit is shown in figure \ref{kf_fit}. The time series of $\alpha$ parameters is shown in figure \ref{kf_alpha}. It is imporatnt to notice that the results obtained with the kalman filter model are sensitive to the initial guesses for the $b$ parameter. For the results shown, we used the estimates of the traditional ricker model as initial guesses. 
+
+
+\begin{table}[ht]
+\centering
+\caption{Parameter estimates for kalman filter Ricker model.}\label{estparkf} 
+\begin{tabular}{lrrrr}
+  \hline
+  Patameter& MLE & median & lower (2.5\%) & upper (97.5\%)\\ 
+  \hline
+$a_{1984}$ &1.5310253&  -   &  - & - \\  
+$a_{1985}$&1.5345581&  -   &  - & - \\
+$a_{1986}$ &1.5642287&  -   &  - & - \\  
+$a_{1987}$ &1.5699172&  -   &  - & - \\  
+$a_{1988}$ &1.5760911&  -   &  - & - \\  
+$a_{1989}$ &1.5553590&  -   &  - & - \\  
+$a_{1990}$ &1.5164915&  -   &  - & - \\  
+$a_{1991}$ &1.4570689&  -   &  - & - \\  
+$a_{1992}$ &1.4205027&  -   &  - & - \\  
+$a_{1993}$ &1.4147197&  -   &  - & - \\  
+$a_{1994}$ &1.4305838&  -   &  - & - \\  
+$a_{1995}$ &1.4324419&  -   &  - & - \\  
+$a_{1996}$ &1.4376735&  -   &  - & - \\ 
+$a_{1997}$ &1.4281890&  -   &  - & - \\  
+$a_{1998}$ &1.4208391&  -   &  - & - \\  
+$a_{1999}$ &1.4027936&  -   &  - & - \\  
+$a_{2000}$ &1.3625441&  -   &  - & - \\  
+$a_{2001}$ &1.3102032&  -   &  - & - \\  
+$a_{2002}$ &1.2619438&  -   &  - & - \\ 
+$a_{2003}$ &1.2084528&  -   &  - & - \\  
+$a_{2004}$ &1.1459904&  -   &  - & - \\  
+$a_{2005}$ &1.1163276&  -   &  - & - \\  
+$a_{2006}$ &1.0847116&  -   &  - & - \\  
+$a_{2007}$ &1.0666182&  -   &  - & - \\  
+$a_{2008}$ &1.0297830&  -   &  - & - \\ 
+$a_{2009}$ &0.9905526&  -   &  - & - \\ 
+$a_{2010}$ &0.9590206&  -   &  - & - \\  
+$a_{2011}$ &0.9378601&  -   &  - & - \\  
+$a_{2012}$ &0.9099201&  -   &  - & - \\  
+$a_{2013}$ &0.8970607&  -   &  - & - \\  
+$b$ &6.961099e-06&  -   &  - & - \\  
+$S_{max}$& 143655.5&  -   &  - & - \\
+   \hline
+\end{tabular}
+\end{table}
+
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=.52]{../figs/KalmanFilter_model_fit.pdf}
+  \caption{Kalman filter Ricker model fit for the Harrison stock. Colours indicate predicted values using year-specific $a$ parameters. Individual observations are represented by the years text on the graph.}
+\label{kf_fit}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=.52]{../figs/KalmanFilter_model_alpha.pdf}
+  \caption{Time trajectory for the estimates of $alpha$ using the kalman filter model.}
+\label{kf_alpha}
+\end{figure}
+
+
+
+
+%\subsection{questions for Gayle sbout raw data}
+
+%\begin{enumerate}
+%  \item Why is the adjusted Adult escapement, adjusted by the average and not by the obeservation?
+%\end{enumerate}
+
+%\bibliographystyle{cell} 
+%\bibliography{MyLibrary.bib}
 
 
 \end{document}
