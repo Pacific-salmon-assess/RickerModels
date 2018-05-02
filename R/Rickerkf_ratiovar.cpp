@@ -47,16 +47,12 @@ Type objective_function<Type>::operator() ()
   Type varphi     = exp(logvarphi);
   Type theta     = sqrt(Type(1.0)/varphi);
   Type sig       = sqrt(rho) * theta;
-  Type tau       = sqrt(Type(1.0)-rho) * theta ;
+  Type tau        = sqrt(Type(1.0)-rho) * theta ;
 
 
   vector<Type> pred_logR(timeSteps), logRS(timeSteps);
 
-  //Type ans= -dgamma(tauR,Type(0.01),Type(0.001),true);   
-  //ans+= -dgamma(taualpha,Type(0.01),Type(0.001),true); 
-
-  //Type ans= -dgamma(tauR,Type(0.01),Type(0.00001),true);  
-  //ans+= -dgamma(taualpha,Type(0.01),Type(0.00001),true); 
+  
 
   //priors on precision and variance ratio
   Type ans= -dbeta(rho,Type(3.0),Type(3.0),true);  
