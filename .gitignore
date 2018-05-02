@@ -1,4 +1,24 @@
 
+
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.dylib
+*.slo
+*.lo
+*.lai
+*.la
+*.a
+
+
+
+
+
 # data files #
 ##############
 data
@@ -22,3 +42,72 @@ data
 
 #Latex Stuf#
 ############
+*.aux
+*.nav
+*.out
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+*.top
+*.toi
+*.d
+*.dvi
+*.fdb_latexmk
+*.fls
+
+
+# iSCAM output
+##############
+*.psv
+*.cor
+*.rep
+*.par
+*.std
+*.eva
+*.mcmc
+*.mcrt
+*.mcst
+*.sim
+*.proj
+*.ret*
+*.p[0-9]*
+*.r[0-9]*
+*.b[0-9]*
+variance
+
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+
+# Figures #
+###########
+*.pdf
+*.png
