@@ -73,7 +73,7 @@ Type objective_function<Type>::operator() ()
     if(!isNA(obs_logR(i))){
       logRS(i) = alpha(i) - beta * obs_S(i) ;
       pred_logR(i) = logRS(i) + log(obs_S(i)); 
-      ans+=-dnorm(obs_logR(i),pred_logR(i),sig,true);
+      //ans+=-dnorm(obs_logR(i),pred_logR(i),sig,true);
     }
   
   }
