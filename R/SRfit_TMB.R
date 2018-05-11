@@ -10,8 +10,8 @@ library(TMB)
 library(TMBhelper)
 
 #load in directories.R
-#source("C:/Users/worc/Documents/HarrisonSR/R/directories.R")
-source("/Users/catarinawor/Documents/work/Chinook/srkf/R/directories.R")
+source("C:/Users/worc/Documents/HarrisonSR/R/directories.R")
+#source("/Users/catarinawor/Documents/work/Chinook/srkf/R/directories.R")
 
 #read in simple data set
 setwd(data_dir)
@@ -27,8 +27,6 @@ predR1<- SR$S_adj*exp(a_srm-b_srm*SR$S_adj)
 df<-data.frame(S=SR$S_adj,predR=predR1,R=SR$R,model="simple",BroodYear=SR$BroodYear)
 df<-df[order(sort(SR$S_adj)),]
 
-
-
 #============================================================
 #Rmissing<-SR$R
 #Rmissing[which(is.na(SR$Age2Surv))]<-NA
@@ -41,7 +39,7 @@ df<-df[order(sort(SR$S_adj)),]
 #kalman filter model
 mydata<-list(obs_logR=log(SR$R),obs_S=SR$S_adj)
 setwd(model_dir)
-compile("Rickerkf.cpp")
+compile("Rickerkf.cpp", "-O1 -g", DLLFLAGS="")
 
 dyn.load("Rickerkf.so")
 

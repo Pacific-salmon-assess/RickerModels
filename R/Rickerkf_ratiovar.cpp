@@ -17,6 +17,7 @@ Type dlnorm(Type x, Type meanlog, Type sdlog, int give_log=0){
 template<class Type>
 Type objective_function<Type>::operator() ()
 {
+
   DATA_VECTOR(obs_logR);   // observed log recruitment
   DATA_VECTOR(obs_S);    // observed  Spawner
   
@@ -56,8 +57,8 @@ Type objective_function<Type>::operator() ()
 
   //priors on precision and variance ratio
   Type ans= -dbeta(rho,Type(3.0),Type(3.0),true);  
-  ans+= -dnorm(logvarphi,Type(0.0),Type(5.0),true);   
-  //ans+= -dgamma(varphi,Type(0.001),Type(0.001),true);   
+  //ans+= -dnorm(logvarphi,Type(0.0),Type(5.0),true);   
+  ans+= -dgamma(varphi,Type(0.001),Type(0.001),true);   
 
   
 
