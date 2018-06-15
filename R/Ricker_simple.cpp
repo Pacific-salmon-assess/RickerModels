@@ -22,47 +22,44 @@ Type objective_function<Type>::operator() ()
   
   PARAMETER(alpha);
   PARAMETER(logbeta);
-  PARAMETER(rho);
-  PARAMETER(logvarphi);
+  //PARAMETER(rho);
+  PARAMETER(logSigObs);
   
   int timeSteps=obs_logR.size();
 
   Type beta=exp(logbeta);
+  Type SigObs     = exp(logSigObs);
   Type Smax  = Type(1.0)/beta;
   
-  Type varphi     = exp(logvarphi);
-  Type theta     = sqrt(Type(1.0)/varphi);
-  Type sig       = sqrt(rho) * theta;
-  Type tau        = sqrt(Type(1.0)-rho) * theta ;
-
+  Type tau     = Type(1.0)/(SigObs*SigObs);
+  
   vector<Type> pred_logR(timeSteps), logRS(timeSteps);
 
  
 
   //priors on precision and variance ratio
-  Type ans= -dbeta(rho,Type(3.0),Type(3.0),true);  
-  //ans+= -dnorm(logvarphi,Type(0.0),Type(5.0),true);   
-  ans+= -dgamma(varphi,Type(0.001),Type(0.001),true);   
+  //Type ans= -dbeta(rho,Type(3.0),Type(3.0),true);  
+  //Type ans= -dnorm(logSigObs,Type(0.0),Type(5.0),true);   
+    Type ans= Type(0);
+  
 
+  
   
 
   for(int i=0;i<timeSteps;i++){
     if(!isNA(obs_logR(i))){
       logRS(i) = alpha - beta * obs_S(i) ;
       pred_logR(i) = logRS(i) + log(obs_S(i)); 
-      ans+=-dnorm(obs_logR(i),pred_logR(i),sig,true);
+      ans+=-dnorm(obs_logR(i),pred_logR(i),SigObs,true);
     }
   
   }
 
   REPORT(pred_logR)
   REPORT(alpha)
-  REPORT(sig)
   REPORT(tau)
-  REPORT(rho)
   REPORT(beta)
-  REPORT(varphi)
-  REPORT(alpha)
+  REPORT(SigObs)
   REPORT(Smax)
   return ans;
 }

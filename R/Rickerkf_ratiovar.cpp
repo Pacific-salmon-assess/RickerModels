@@ -58,11 +58,10 @@ Type objective_function<Type>::operator() ()
   //priors on precision and variance ratio
   Type ans= -dbeta(rho,Type(3.0),Type(3.0),true);  
   //ans+= -dnorm(logvarphi,Type(0.0),Type(5.0),true);   
-  ans+= -dgamma(varphi,Type(0.001),Type(0.001),true);   
+  //ans+= -dgamma(varphi,Type(0.001),Type(0.001),true);   
 
-  
-
-  ans+= -dnorm(alpha(0),alphao,tau,true); 
+  ans+= -dnorm(alpha(0),alphao,tau,true);
+  //Type ans= -dnorm(alpha(0),alphao,tau,true); 
   
   for(int i=1;i<timeSteps;i++){
   

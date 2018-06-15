@@ -110,16 +110,18 @@
 
 \section{Background}
 
-Estimation of Ricker stock recruitment parameters for the Harrison Chinook stock. 
-
+Estimation of stock and recruitment dynamics for the Harrison River Chinook salmon (\emph{Oncorhynchus tshawytscha}) stock. Stock and R]recruitment dynamics were described with three formulations of the Ricker curve: a simple Ricker model, a recursive Bayes model with time-varying productivity, and a Ricker model including survival up to age two as a covariate. The objective of this analysis was to compare all three versions of the model as well as attempt to identify the significance and magnitude of changes in productivity over time.
 
 
 \section{Data}
- The data for this model is in the file named Harrison\textunderscore simples\textunderscore Apr18.csv. The survival data has a missing observation in the 2004 brood year therefore that year was not inlcuded in the analysis that contains survival data.
+ The data used in this analysis is in the file named Harrison\textunderscore simples\textunderscore Apr18.csv. The survival data has a missing observation in the 2004 brood year. For this reason, that year was not included in the analysis that contains survival data.
+
+ - need more detail on how the survival data is produced. 
+
 
 \section{Models}
 
-Three models formulations were explored, the tradional Ricker function, a Ricker function including the survival data up to age 2, and a Kalman filter model including random walk in the alpha parameter.
+Three model formulations were explored, the traditional Ricker function, a Bayes recursive model including random walk in the alpha parameter and a Ricker function including the survival data up to age 2. All models were fit using R \citep{r_development_core_team_r:_2008} and the TMB software \citep{kristensen_tmb:_2016}.  Even though all the models were fit to data using Bayesian procedures, we did not explicitly consider any priors to the estimated parameters of derived quantities. Instead, bounds were places on the estimable parameters which could be compared to using uniform priors. Later, we argue that the use of proper priors might improve the estimates and confidence bounds reported in this study. All Bayesian posteriors were based on 1000000 iterations and three mcmc chains. We used a burn in period of 50000 iterations. Convergence was evaluated based on standard diagnostic plots available for the package tmbstan. All code will be uploaded to github soon. 
 
 
 \subsection{Ricker model}
@@ -134,32 +136,31 @@ S_{max} &= \frac{1}{b}\\
 w_t \sim \mathcal{N}(0,\sigma_R)
 \end{align}
 
-The estimated parameters are in table \ref{estparsimple} and the model fit is shown in figure \ref{simple_fit}.
 
-\begin{table}[ht]
-\centering
-\caption{Parameter estimates for traditional ricker model.}\label{estparsimple} 
-\begin{tabular}{lrrrr}
-  \hline
-  Patameter& MLE & median & lower (2.5\%) & upper (97.5\%)\\ 
-  \hline
- $a$ & 1.275813  &  -   &  - & - \\ 
- $b$ & 6.736549e-06  & - & - & -\\ 
- $\alpha$ & 3.581611  & - & - & -\\ 
- $S_{max}$ & 148444  & - & - & -\\ 
-   \hline
-\end{tabular}
-\end{table}
+The estimated parameters are in table \ref{estparsimple} and the model fit is shown in figure \ref{simple_fit}. In order to produce Bayesian results that were comparable to the ones seen with the Maximum Likelihood Estimate (MLE), we had to impose relatively narrow bounds on $log(b)$, from -13.5 to -9 (Figure \ref{posterior_simple}). This truncation was necessary in order to ensure that the $b$ posterior did not become bimodal. In future iterations of the model, the use of informative priors on the estimable parameters might obviate the need for narrow bounds on $b$.  
+
+\label{estparsimple} 
+\input{simple_tab.tex}
+
+
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[scale=.52]{../figs/simple_model_fit.pdf}
-  \caption{Traditional Ricker model fit for the Harrison stock. Individual observations are represented by the years text on the graph.}
+  \includegraphics[scale=.52]{../figs/simple_model_fit}
+  \caption{Traditional Ricker model fit for the Harrison stock. Individual observations are represented by the years text on the graph. Maximum likelihood estimates(MLE)are shown and bleue and Bayesian median and 95\% credible intervals are shown in red. }
 \label{simple_fit}
 \end{figure}
 
 
-\subsection{Ricker model and kalman filter for time-varying $a$}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=.52]{../figs/posterior_simple_model_fit}
+  \caption{Posterior distributions for $a$, $b$, $\sigma$ and $S_{max}$. }
+\label{posterior_simple}
+\end{figure}
+
+
+\subsection{Recursive Bayes Ricker model for time-varying $a$}
 
 We used following formulation of the Ricker function:
 
@@ -171,7 +172,8 @@ S_{max} &= \frac{1}{b} \\
 w_t &\sim \mathcal{N}(0,\sigma_R)
 \end{align}
 
-The variability in the parameter $a_t$ is given by a Kalman filter function in which:
+
+The variability in the parameter $a_t$ is given by a recursive Bayes function in which:
 
 \begin{align} 
 \begin{cases}
@@ -181,79 +183,85 @@ v_t \sim \mathcal{N}(0,\sigma_v)
 \end{cases}
 \end{align}
 
+The models observation $\sigma^{2}_{R}$ and  process $\sigma^{2}_{v}$ variances were partitioned as follows
 
-The $alpha$ parameters were treated as random effects in the estimation model. The estimated parameters are in table \ref{estparkf} and the model fit is shown in figure \ref{kf_fit}. The time series of $\alpha$ parameters is shown in figure \ref{kf_alpha}. It is imporatnt to notice that the results obtained with the kalman filter model are sensitive to the initial guesses for the $b$ parameter. For the results shown, we used the estimates of the traditional ricker model as initial guesses. 
 
+\begin{align} 
+\sigma_{R}      = \sqrt{\rho} \cdot \sigma_{\theta}\\
+\sigma_v        = \sqrt{1-\rho} \cdot \sigma_{\theta} 
+\end{align}
 
-\begin{table}[ht]
-\centering
-\caption{Parameter estimates for kalman filter Ricker model.}\label{estparkf} 
-\begin{tabular}{lrrrr}
-  \hline
-  Patameter& MLE & median & lower (2.5\%) & upper (97.5\%)\\ 
-  \hline
-$a_{1984}$ &1.5310253&  -   &  - & - \\  
-$a_{1985}$&1.5345581&  -   &  - & - \\
-$a_{1986}$ &1.5642287&  -   &  - & - \\  
-$a_{1987}$ &1.5699172&  -   &  - & - \\  
-$a_{1988}$ &1.5760911&  -   &  - & - \\  
-$a_{1989}$ &1.5553590&  -   &  - & - \\  
-$a_{1990}$ &1.5164915&  -   &  - & - \\  
-$a_{1991}$ &1.4570689&  -   &  - & - \\  
-$a_{1992}$ &1.4205027&  -   &  - & - \\  
-$a_{1993}$ &1.4147197&  -   &  - & - \\  
-$a_{1994}$ &1.4305838&  -   &  - & - \\  
-$a_{1995}$ &1.4324419&  -   &  - & - \\  
-$a_{1996}$ &1.4376735&  -   &  - & - \\ 
-$a_{1997}$ &1.4281890&  -   &  - & - \\  
-$a_{1998}$ &1.4208391&  -   &  - & - \\  
-$a_{1999}$ &1.4027936&  -   &  - & - \\  
-$a_{2000}$ &1.3625441&  -   &  - & - \\  
-$a_{2001}$ &1.3102032&  -   &  - & - \\  
-$a_{2002}$ &1.2619438&  -   &  - & - \\ 
-$a_{2003}$ &1.2084528&  -   &  - & - \\  
-$a_{2004}$ &1.1459904&  -   &  - & - \\  
-$a_{2005}$ &1.1163276&  -   &  - & - \\  
-$a_{2006}$ &1.0847116&  -   &  - & - \\  
-$a_{2007}$ &1.0666182&  -   &  - & - \\  
-$a_{2008}$ &1.0297830&  -   &  - & - \\ 
-$a_{2009}$ &0.9905526&  -   &  - & - \\ 
-$a_{2010}$ &0.9590206&  -   &  - & - \\  
-$a_{2011}$ &0.9378601&  -   &  - & - \\  
-$a_{2012}$ &0.9099201&  -   &  - & - \\  
-$a_{2013}$ &0.8970607&  -   &  - & - \\  
-$b$ &6.961099e-06&  -   &  - & - \\  
-$S_{max}$& 143655.5&  -   &  - & - \\
-   \hline
-\end{tabular}
-\end{table}
+Where $\rho$ is the proportion of total variance associated with observation error, and $\sigma_{\theta} $ is the the total standard deviation. In this version of the Ricker model, we included an informative prior on the $\rho$ parameter. The prior was necessary to prevent the model to allocate all of the variability to observation error ($\rho = 1$). Because the $\rho$ variable is constrained between zero and one, we opted for a beta prior (Figure \ref{priorrho}) centered around 0.5. The potential effects of this prior are quite relevant as it will determine how much variability is allocated to process error and, therefore, influence the magnitude of the changes in the productivity parameter $a$. \citet{davis_prior_2018} shows the effects of alternative formulations of this model as well as comprehensive exploration of the impacts of different prior choices.  \citet{davis_prior_2018} used the same data set as the one used in the production of this report.   
 
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[scale=.52]{../figs/KalmanFilter_model_fit.pdf}
-  \caption{Kalman filter Ricker model fit for the Harrison stock. Colours indicate predicted values using year-specific $a$ parameters. Individual observations are represented by the years text on the graph.}
-\label{kf_fit}
+  \includegraphics[scale=.52]{../figs/prior_rho.pdf}
+  \caption{Prior for $\rho$ used for the recursive Bayes model.}
+\label{priorrho}
+\end{figure}
+
+
+
+The $a$ parameters were treated as random effects in the estimation model. The estimated parameters are in table \ref{estparrec} and the model fit, MLE estimates only, is shown in figure \ref{rec_fit}. Similarly to the simple Ricker model, the posterior distribution for the $b$ parameter was truncated by the artificially imposed boundaries on the parameter estimates (Figure \ref{psterior_rec} . The time series of $\alpha$ parameters and credible intervals are shown in figure \ref{rec_alpha}.  
+
+
+
+\label{estparrec} 
+\input{recursive_tab.tex}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=.52]{../figs/recursive_model_fit.pdf}
+  \caption{Recursive Bayes Ricker model for the Harrison stock. Colors indicate predicted values using year-specific $a$ parameters. Individual observations are represented by the years text on the graph.}
+\label{rec_fit}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[scale=.52]{../figs/KalmanFilter_model_alpha.pdf}
-  \caption{Time trajectory for the estimates of $alpha$ using the kalman filter model.}
-\label{kf_alpha}
+  \includegraphics[scale=.52]{../figs/posterior_recursive_model.pdf}
+  \caption{Posterior distribution for $a$, $b$, $S_{max}$ and $rho$ for the recursive Bayes model.}
+\label{psterior_rec}
 \end{figure}
 
 
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=.52]{../figs/recursive_a.pdf}
+  \caption{Time trajectory for the estimates of $a$ using the recursive Bayes model.}
+\label{rec_alpha}
+\end{figure}
+
+\subsection{Model considering survival as a covariate}
+
+The estimated parameters are in table \ref{estrecsv} and the model fit, MLE estimates only, is shown in figure \ref{rec_sv_fit}. Similarly to the recursive Bayes model, the model that includes the survival covariates also produce a wide range of resulting recruitment curves. However, the pattern in curves' productivity was not as explicit as the one seen in the recursive Bayes model, probably due to the high survival rates estimated for 2005, 2007 and 2010. Another factor that might have contributed to the absence of trends in survival patterns is the uncertainty in the survival estimates themselves. Future iterations of this model might be improved if the juvenile survival effect is considered with uncertainty estimates. 
 
 
-%\subsection{questions for Gayle sbout raw data}
 
-%\begin{enumerate}
-%  \item Why is the adjusted Adult escapement, adjusted by the average and not by the obeservation?
-%\end{enumerate}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=.52]{../figs/survival_model_fit.pdf}
+  \caption{Ricker model for the Harrison stock with survival up to age two as a covariate. Colors indicate predicted values using year-specific survival. Individual observations are represented by the years text on the graph.}
+\label{rec_sv_fit}
+\end{figure}
 
-%\bibliographystyle{cell} 
-%\bibliography{MyLibrary.bib}
+\label{estrecsv} 
+\input{surv_tab.tex}
+
+\section{Potential future work}
+
+
+\begin{itemize}
+  \item{\bf Priors}
+    \subitem{Further investigation of informative priors, particularly those based on previous knowledge about habitat and survival rates. }
+  \item{\bf Hierarchical approach}
+    \subitem{Extensions of this work could include the estimation of stock recruitment parameters for multiple stocks. Similar work has been done for pink salmon by \citet{su_spatial_2004}.} 
+  \item{\bf Age-structured approach}
+    \subitem{We could also explore the use of a full age structured model, similar to the one shown in \citet{fleischman_age-structured_2013}. This approach would allow for the direct consideration of age-specific survival as well as raw tagging data.} 
+  \end{itemize}
+
+\bibliographystyle{cell} 
+\bibliography{report.bib}
 
 
 \end{document}
