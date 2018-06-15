@@ -79,6 +79,8 @@ variance
 *.toi
 *.d
 *.dvi
+*.blg
+*.bbl
 
 
 
