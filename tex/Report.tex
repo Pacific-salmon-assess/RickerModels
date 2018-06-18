@@ -234,6 +234,17 @@ The $a$ parameters were treated as random effects in the estimation model. The e
 
 \subsection{Model considering survival as a covariate}
 
+
+Because the survival data was available we computed a version of the model with that data as a covariate. For that version, we adapted the traditional Ricker model as follows:
+
+\begin{align} 
+R_t &= S_t \cdot \alpha \cdot surv_{a\leq2} \cdot e^{(-b\cdot S_t + w_t)}  \\ 
+log\frac{R_t}{S_t} &= a_t+ log(surv_{a\leq2}) - b\cdot S_t + w_t\\
+w_t &\sim \mathcal{N}(0,\sigma_R)
+\end{align} 
+
+In this model, the productivity parameter was disentangled into survival up to age 2, $surv_{a\leq2}$, and the remaining survival and fecundity effects, $\alpha$. Since survival data was missing for one year, that year was excluded from the analysis
+
 The estimated parameters are in table \ref{estrecsv} and the model fit, MLE estimates only, is shown in figure \ref{rec_sv_fit}. Similarly to the recursive Bayes model, the model that includes the survival covariates also produce a wide range of resulting recruitment curves. However, the pattern in curves' productivity was not as explicit as the one seen in the recursive Bayes model, probably due to the high survival rates estimated for 2005, 2007 and 2010. Another factor that might have contributed to the absence of trends in survival patterns is the uncertainty in the survival estimates themselves. Future iterations of this model might be improved if the juvenile survival effect is considered with uncertainty estimates. 
 
 
@@ -252,6 +263,8 @@ The estimated parameters are in table \ref{estrecsv} and the model fit, MLE esti
 
 
 \begin{itemize}
+   \item{\bf Error in variables}
+    \subitem{Uncertainty estimates for the survival data might help illustrate potential trends in the survival data. It would also be interesting to investigate ways of imputing estimates for the year in which data is missing.}
   \item{\bf Priors}
     \subitem{Further investigation of informative priors, particularly those based on previous knowledge about habitat and survival rates. }
   \item{\bf Hierarchical approach}
