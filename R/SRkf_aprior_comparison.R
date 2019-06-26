@@ -15,8 +15,7 @@ library(reshape)
 library(xtable)
 
 #load in directories.R
-source("C:/Users/worc/Documents/HarrisonSR/R/directories.R")
-#source("/Users/catarinawor/Documents/work/Chinook/srkf/R/directories.R")
+
 
 #setwd(model_dir)
 source("calc_quantile.R")
