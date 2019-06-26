@@ -84,8 +84,8 @@ Type objective_function<Type>::operator() ()
   
   }
 
-  REPORT(pred_logR)
-  REPORT( alpha)
+  ADREPORT(pred_logR)
+  REPORT(alpha)
   REPORT(sig)
   REPORT(tau)
   REPORT(rho)
@@ -93,7 +93,7 @@ Type objective_function<Type>::operator() ()
   REPORT(varphi)
   REPORT(alphao)
   REPORT(Smax)
-  REPORT(umsy)
+  ADREPORT(umsy)
   return ans;
 }
 
