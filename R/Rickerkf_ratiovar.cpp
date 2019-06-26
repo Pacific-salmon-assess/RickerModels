@@ -21,6 +21,8 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(obs_logR);   // observed log recruitment
   DATA_VECTOR(obs_S);    // observed  Spawner
   
+  DATA_SCALAR(prbeta1);
+  DATA_SCALAR(prbeta2);
   //logbeta     -> log of beta from ricker curve
   //alphao      -> initial alpha value
   //rho         -> Proportion of total variance associated with obs error.
@@ -51,16 +53,19 @@ Type objective_function<Type>::operator() ()
   Type tau        = sqrt(Type(1.0)-rho) * theta ;
 
 
-  vector<Type> pred_logR(timeSteps), logRS(timeSteps);
+  vector<Type> pred_logR(timeSteps), logRS(timeSteps),umsy(timeSteps);
 
   
 
   //priors on precision and variance ratio
-  Type ans= -dbeta(rho,Type(3.0),Type(3.0),true);  
+  Type ans= -dbeta(rho,prbeta1,prbeta2,true);  
+  //Type ans= -dbeta(rho,Type(1.0),Type(1.0),true);  
   //ans+= -dnorm(logvarphi,Type(0.0),Type(5.0),true);   
   //ans+= -dgamma(varphi,Type(0.001),Type(0.001),true);   
 
   ans+= -dnorm(alpha(0),alphao,tau,true);
+  umsy(0)     = Type(.5) * alpha(0) - Type(0.07) * (alpha(0) * alpha(0)); 
+
   //Type ans= -dnorm(alpha(0),alphao,tau,true); 
   
   for(int i=1;i<timeSteps;i++){
@@ -72,7 +77,8 @@ Type objective_function<Type>::operator() ()
   for(int i=0;i<timeSteps;i++){
     if(!isNA(obs_logR(i))){
       logRS(i) = alpha(i) - beta * obs_S(i) ;
-      pred_logR(i) = logRS(i) + log(obs_S(i)); 
+      pred_logR(i) = logRS(i) + log(obs_S(i));
+      umsy(i)     = Type(.5) * alpha(i) - Type(0.07) * (alpha(i) * alpha(i)); 
       ans+=-dnorm(obs_logR(i),pred_logR(i),sig,true);
     }
   
@@ -87,6 +93,7 @@ Type objective_function<Type>::operator() ()
   REPORT(varphi)
   REPORT(alphao)
   REPORT(Smax)
+  REPORT(umsy)
   return ans;
 }
 

@@ -28,10 +28,13 @@ SR<-read.csv("Harrison_simples_Apr18.csv")
 
 # LM version
 #simple model
+
 srm<-lm(log(SR$R/SR$S_adj)~ SR$S_adj)
 a_srm<-srm$coefficients[1]
 b_srm<--srm$coefficients[2]
 alpha<-exp(a_srm)
+
+u_msy=.5*a_srm-0.07*a_srm^2
 
 predR1<- SR$S_adj*exp(a_srm-b_srm*SR$S_adj)
 
@@ -70,7 +73,6 @@ posterior_simple<-posteriorsdf(simpleB)
 
 #plots
 plot_posteriors(posterior_simple$posteriors)
-
 #posteriors of derived quantities -- the interesting ones
 simpdf<-posterior_simple$posteriors
 
@@ -79,22 +81,24 @@ alpha<-exp(simpdf$value[simpdf$parameters=="alpha"])
 beta<-exp(simpdf$value[simpdf$parameters=="logbeta"])
 Smax<-1/exp(simpdf$value[simpdf$parameters=="logbeta"])
 sig<-exp(simpdf$value[simpdf$parameters=="logSigObs"])
+umsy_simple<-.5*a-0.07*a^2
 
-deriv_posteriors<-data.frame(chains=rep(simpdf$chains[simpdf$parameters=="logbeta"],4),
-                             parameters = rep(c("a","b","Smax","sig"),each=length(a)),
-                             value = c(a,beta,Smax,sig)
+deriv_posteriors<-data.frame(chains=rep(simpdf$chains[simpdf$parameters=="logbeta"],5),
+                             parameters = rep(c("a","b","Smax","sig","umsy"),each=length(a)),
+                             value = c(a,beta,Smax,sig,umsy_simple)
                              )
 
-plot_posteriors(deriv_posteriors,salvar=TRUE,DIR=figs_dir,nome="posterior_simple_model_fit.pdf")
+
+plot_posteriors(deriv_posteriors,salvar=TRUE,DIR=figs_dir,nome="posterior_simple_model_fit_umsy.pdf")
 
 
 Di<-list(
   DIR=tex_dir,
-  param_names=c("a","b","$\\alpha$","$S_{max}$"),
-  MLE=c(a_srm,b_srm,exp(a_srm),1/b_srm),
-  MCMC=cbind(a,beta,alpha,Smax),
+  param_names=c("a","b","$\\alpha$","$S_{max}$","$u_{MSY}$"),
+  MLE=c(a_srm,b_srm,exp(a_srm),1/b_srm,u_msy),
+  MCMC=cbind(a,beta,alpha,Smax,umsy_simple),
   caption = "Parameter estimates for traditional Ricker model.",
-  digits=matrix(c(2,-2,2,2),ncol=6,nrow=4),
+  digits=matrix(c(2,-2,2,2,2),ncol=6,nrow=5),
   other=NULL,
   filename="simple_tab.tex")
 
@@ -120,6 +124,7 @@ M<-list(
   )
 
 model_pred_plot(M, salvar=TRUE,DIR=figs_dir,filename="simple_model_fit.pdf")
+
 
 #=============================================================================================================
 #Recursive Bayes model
@@ -147,15 +152,20 @@ repkf<-recursiveobj$report()
 
 predR2<-matrix(NA,nrow=length(SR$S_adj),ncol=length(repkf$alpha))
 
+s_pred<-seq(0,max(SR$S_adj)*1.05,length=length(SR$S_adj))
+
 for(i in 1:length(repkf$alpha)){
-  predR2[,i]<- SR$S_adj*exp(repkf$alpha[i]-repkf$beta*SR$S_adj)
+  #predR2[,i]<- SR$S_adj*exp(repkf$alpha[i]-repkf$beta*SR$S_adj)
+  predR2[,i]<- s_pred*exp(repkf$alpha[i]-repkf$beta*s_pred)
 }
 
 
 df<-data.frame(S=rep(SR$S_adj,length(repkf$alpha)),
+  predS=rep(s_pred,length(repkf$alpha)),
     predR=c(predR2),
     R=rep(SR$R,length(repkf$alpha)),
     a=rep(repkf$alpha,each=length(repkf$alpha)),
+    umsy=rep(repkf$umsy,each=length(repkf$umsy)),
     ayr=as.factor(rep(SR$BroodYear,each=length(repkf$alpha))),
     model="Kalman filter",
     BroodYear=rep(SR$BroodYear,length(repkf$alpha)))
@@ -163,16 +173,32 @@ df<-data.frame(S=rep(SR$S_adj,length(repkf$alpha)),
 
 df<-df[sort(order(df$S)),]
 
-head(df)
+max(df$S)
+head(SR)
+
+
+
+p <- ggplot(SR)
+#p <- p + geom_point(aes(x=S_adj,y=R))
+p <- p + geom_point(aes(x=BroodYear,y=R), size=2, alpha=0.6)
+p
+
+
 
 p <- ggplot(df)
 #p <- p + geom_point(aes(x=S_adj,y=R))
-p <- p + geom_line(aes(x=S,y=predR, color=ayr), size=2, alpha=0.6)
-p <- p + geom_text(aes(x=S,y=R,label=BroodYear ),hjust=0, vjust=0)
+p <- p + geom_line(aes(x=predS/1000,y=predR/1000, color=ayr), size=2, alpha=0.6)
+p <- p + geom_text(aes(x=S/1000,y=R/1000,label=BroodYear ),hjust=0, vjust=0)
 p <- p + theme_bw(16)
-p <- p + labs(title = "Recursive Bayes model", x = "Spawners", y = "Recruits", color = "Year\n") 
+p <- p + coord_cartesian(xlim=c(0,max(df$S)/1000*1.05))
+
+p <- p + labs(title = "Recursive Bayes model", x = "Spawners (1000s)", y = "Recruits (1000s)", color = "Year\n") 
 #ylab("Recruits") + xlab("Spawners")
 p
+ggsave("recursive_pred.pdf", plot=p, width=10,height=7)
+
+
+
 
 
 
@@ -187,22 +213,27 @@ recursiveB<-list(
 
 posterior_recursive<-posteriorsdf(recursiveB)
 
+
+
+
 plot_posteriors(posterior_recursive$posteriors)
 
 recrsdf<-posterior_recursive$posteriors
 
 
-a<-(recrsdf$value[recrsdf$parameters=="alphao"])
-beta<-exp(recrsdf$value[recrsdf$parameters=="logbeta"])
-Smax<-1/exp(recrsdf$value[recrsdf$parameters=="logbeta"])
-rho<-(recrsdf$value[recrsdf$parameters=="rho"])
+a_rb<-(recrsdf$value[recrsdf$parameters=="alphao"])
+beta_rb<-exp(recrsdf$value[recrsdf$parameters=="logbeta"])
+Smax_rb<-1/exp(recrsdf$value[recrsdf$parameters=="logbeta"])
+rho_rb<-(recrsdf$value[recrsdf$parameters=="rho"])
+umsy_rb<-.5*a_rb-0.07*a_rb^2
 
-deriv_posteriors<-data.frame(chains=rep(recrsdf$chains[recrsdf$parameters=="logbeta"],4),
-                             parameters = rep(c("ao","b","Smax","rho"),each=length(a)),
-                             value = c(a,beta,Smax,rho)
+
+deriv_posteriors<-data.frame(chains=rep(recrsdf$chains[recrsdf$parameters=="logbeta"],5),
+                             parameters = rep(c("ao","b","Smax","rho","umsy"),each=length(a)),
+                             value = c(a_rb,beta_rb,Smax_rb,rho_rb,umsy_rb)
                              )
 
-plot_posteriors(deriv_posteriors,salvar=TRUE,DIR=figs_dir,nome="posterior_recursive_model.pdf")
+plot_posteriors(deriv_posteriors,salvar=TRUE,DIR=figs_dir,nome="posterior_recursive_model_umsy.pdf")
 
 #prior on rho
 pdf("prior_rho.pdf")
@@ -211,18 +242,6 @@ plot(seq(0,1,by=.05),dbeta(seq(0,1,by=.05),3,3), type="l",
 dev.off()
 
 
-
-Dr<-list(
-  DIR=tex_dir,
-  param_names=c("b","$S_{max}$","$\\rho$",paste("a",SR$BroodYear)),
-  MLE=c(repkf$beta,repkf$Smax,repkf$rho,repkf$alpha),
-  MCMC=cbind(beta,Smax,rho),
-  caption = "Parameter estimates for recursive Bayes Ricker model.",
-  digits=matrix(c(2,-2,2,2),ncol=6,nrow=length(SR$BroodYear)+2),
-  other=rbind(posterior_recursive$fit_summary$summary[5:34,4],posterior_recursive$fit_summary$summary[5:34,6],posterior_recursive$fit_summary$summary[5:34,8]),
-  filename="recursive_tab.tex")
-
- results_table(Dr) 
 
 
 
@@ -240,6 +259,66 @@ pa
 setwd(figs_dir)
 ggsave("recursive_a.pdf", plot=pa, width=10,height=7)
 
+
+names(posterior_recursive$posteriors)
+
+soa<-posterior_recursive$posteriors[grep("alpha",posterior_recursive$posteriors$parameters),]
+
+summary(soa)
+soa$umsy=.5*soa$value-0.07*soa$value^2
+
+umsyposteriorsummary<-aggregate(soa$umsy,list(soa$parameters),function(x){quantile(x,probs=c(0.025,.5,.975))})
+order(umsyposteriorsummary$Group.1)
+umsyposteriorsummary<-umsyposteriorsummary[c(1,12,23,25:30,2:11,13:22,24),]
+
+
+
+
+Dr<-list(
+  DIR=tex_dir,
+  param_names=c("b","$S_{max}$","$\\rho$",paste("a",SR$BroodYear)),
+  MLE=c(repkf$beta,repkf$Smax,repkf$rho,repkf$alpha),
+  MCMC=cbind(beta,Smax,rho),
+  caption = "Parameter estimates for recursive Bayes Ricker model.",
+  digits=matrix(c(2,-2,2,2),ncol=6,nrow=length(SR$BroodYear)+2),
+  other=rbind(posterior_recursive$fit_summary$summary[5:34,4],posterior_recursive$fit_summary$summary[5:34,6],posterior_recursive$fit_summary$summary[5:34,8]),
+  filename="recursive_tab.tex")
+
+ results_table(Dr) 
+
+
+
+Drumsy<-list(
+  DIR=tex_dir,
+  param_names=c(paste("$U_{MSY}$",SR$BroodYear)),
+  MLE=c(repkf$umsy),
+  MCMC=NA,
+caption = "$U_{MSY}$ estimates for recursive Bayes Ricker model.",
+  digits=matrix(c(2),ncol=6,nrow=length(SR$BroodYear)),
+  other=rbind(umsyposteriorsummary$x[,1],umsyposteriorsummary$x[,2],umsyposteriorsummary$x[,3]),
+  filename="recursive_tab_umsy.tex")
+
+ results_table(Drumsy) 
+
+
+
+names(umsyposteriorsummary)
+
+length(umsyposteriorsummary$x[,2])
+length(repkf$umsy)
+
+
+dfu<-data.frame(broodyear=rep(SR$BroodYear,2),umsy=c(repkf$umsy,umsyposteriorsummary$x[,2]), 
+  type=rep(c("MLE","Bayes"),each=length(SR$BroodYear)),lower=c(rep(NA,length(SR$BroodYear)),umsyposteriorsummary$x[,1]),
+  upper=c(rep(NA,length(SR$BroodYear)),umsyposteriorsummary$x[,3]))
+
+
+pu<-ggplot(dfu)
+pu<-pu+geom_line(aes(x=broodyear,y=umsy,col=type), size=2)
+pu<-pu+geom_ribbon(aes(x=broodyear,ymin=lower,ymax=upper, fill=type),alpha=.4)
+pu<-pu+theme_bw(16)
+pu<-pu+labs(title = "Recursive Bayes model -  Umsy time series", y = expression(u[MSY]), x = "Brood year") 
+pu
 
 #=============================================================================================================
 #=============================================================================================================

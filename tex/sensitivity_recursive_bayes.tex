@@ -1,0 +1,383 @@
+ \documentclass{article}
+
+%% Compile this with
+%% R> library(pgfSweave)
+%% R> pgfSweave
+%\usepackage[nogin]{Sweave} %way to understand R code
+\usepackage{pgf} 
+
+%look it up
+\usepackage{tikz} 
+
+% allows to have subfigures
+\usepackage{color} 
+
+%colored text!
+\usepackage[left=1.2in,right=1.2in,top=1.2in,bottom=1.2in]{geometry} 
+
+% sets the margins
+\usepackage{fancyhdr} 
+\usepackage{setspace} 
+\usepackage{indentfirst} 
+\usepackage{titlesec} 
+\usepackage{natbib} 
+\usepackage{sectsty}
+\usepackage{listings}
+\usepackage[section]{placeins}
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{float}
+\usepackage[hyphens]{url}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\hypersetup{
+    colorlinks,
+    linkcolor={red!50!black},
+    citecolor={blue!50!black},
+    urlcolor={blue!80!black}
+}
+
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+%\usepackage{draftwatermark}
+%\SetWatermarkText{DRAFT}
+%\SetWatermarkScale{1}
+%\SetWatermarkLightness{0.9}
+
+\usepackage[nomarkers]{endfloat}
+
+\newcommand{\lang}{\textsf} 
+
+%
+\newcommand{\code}{\texttt} 
+\newcommand{\pkg}{\texttt} 
+\newcommand{\ques}[1]{{\bf\large#1}} 
+\newcommand{\eb}{\\
+\nonumber} 
+
+
+%% The following is used for tables of equations.
+\newcounter{saveEq} 
+\def\putEq{\setcounter{saveEq}{\value{equation}}} 
+\def\getEq{\setcounter{equation}{\value{saveEq}}} 
+\def 
+\tableEq{ 
+
+% equations in tables
+\putEq \setcounter{equation}{0} 
+\renewcommand{\theequation}{T\arabic{table}.\arabic{equation}} \vspace{-5mm} } 
+\expandafter\def\expandafter\UrlBreaks\expandafter{\UrlBreaks%  save the current one
+  \do\a\do\b\do\c\do\d\do\e\do\f\do\g\do\h\do\i\do\j%
+  \do\k\do\l\do\m\do\n\do\o\do\p\do\q\do\r\do\s\do\t%
+  \do\u\do\v\do\w\do\x\do\y\do\z\do\A\do\B\do\C\do\D%
+  \do\E\do\F\do\G\do\H\do\I\do\J\do\K\do\L\do\M\do\N%
+  \do\O\do\P\do\Q\do\R\do\S\do\T\do\U\do\V\do\W\do\X%
+  \do\Y\do\Z}
+
+
+\def\normalEq{ 
+
+% renew normal equations
+\getEq 
+\renewcommand{\theequation}{\arabic{section}.\arabic{equation}}}
+\newcommand{\normal}[2]{\ensuremath{N(#1,#2)}}
+
+
+\doublespacing 
+
+
+\title{Stock recruitment analysis for Harrison river chinook salmon} 
+%\author{Catarina Wor} 
+\sectionfont{
+\fontsize{12}{12}\selectfont}
+\lstset{ language={[LaTeX]TeX},
+      escapeinside={{(*@}{@*)}}, 
+       gobble=0,
+       stepnumber=1,numbersep=5pt, 
+       numberstyle={\footnotesize\color{gray}},%firstnumber=last,
+      breaklines=true,
+      framesep=5pt,
+      basicstyle=\small\ttfamily,
+      showstringspaces=false,
+      keywordstyle=\ttfamily\textcolor{blue},
+      stringstyle=\color{orange},
+      commentstyle=\color{black},
+      rulecolor=\color{gray!10},
+      breakatwhitespace=true,
+      showspaces=false,  % shows spacing symbol
+      backgroundcolor=\color{gray!15}}
+
+
+%\pgfrealjobname{pgfSweave-vignette}
+%pgfSweave-vignette
+\begin{document}
+\maketitle
+
+\tableofcontents
+
+\section{Objective}
+
+ We provide estimates of stock and recruitment parameters for the Harrison River Chinook salmon (\emph{Oncorhynchus tshawytscha}). Various versions of the model are used in order to provide insight into the recruitment dynamics of the stock, as well as provide estimates for use in the Viability and Risk Assessment Procedure (VRAP) simulation tool. We described the recruitment dynamics with two formulations of the Ricker curve: a simple Ricker model and a recursive Bayes model with time-varying productivity. We compare the two versions of the model and attempt to identify the significance and magnitude of changes in productivity over time.
+
+
+\section{Data}
+ The data used in this analysis is in the file named Harrison\textunderscore simples\textunderscore Apr18.csv. The analysis includes brood years from 1984 to 2013. 
+
+ % The survival data has a missing observation in the 2004 brood year. For this reason, that year was not included in the analysis that contains survival data.
+
+
+\section{Models}
+
+Two model formulations were explored, the traditional Ricker function and a Bayes recursive model including random walk in the productivity  parameter ($\alpha$). All models were fit using R \citep{r_development_core_team_r:_2008} and the TMB software \citep{kristensen_tmb:_2016}.  Even though all the models were fit to data using Bayesian procedures, we did not explicitly consider priors for all the estimated parameters or derived quantities. Instead, bounds were placed on the estimable parameters, which is comparable to using uniform priors. Later, we argue that the use of proper priors might improve the estimates and confidence bounds reported in this study. All Bayesian posteriors were based on 10000 iterations and three MCMC chains. We used a burn in period of 50000 iterations. Convergence was evaluated with visual inspection of standard diagnostic plots available for the package tmbstan. All code is available from \url{https://github.com/catarinawor/srkf/}. 
+
+
+\subsection{Ricker model}
+
+We used the traditional linear formulation of the Ricker function:
+
+\begin{align} 
+R_t &= S_t \cdot \alpha \cdot e^{(-b\cdot S_t + w_t)}  \\ 
+log\frac{R_t}{S_t} &= a-b\cdot S_t + w_t \\
+S_{max} &= \frac{1}{b}\\
+\alpha &= e^{a}\\
+w_t &\sim \mathcal{N}(0,\sigma_R)
+\end{align}
+
+In addition, we produced estimates of the exploitation rate that would produce maximum sustainable yield $U_{MSY}$. These estimates were based on the equation provided by \citet{hilborn_quantitative_1992}: 
+
+\begin{align} 
+U_{MSY} &=.5*a-0.07*a^2
+\end{align}
+
+The estimated parameters are in Table \ref{estparsimple} and the model fit is shown in Figure \ref{simple_fit}. In order to produce Bayesian results that were comparable to the ones seen with the Maximum Likelihood Estimate (MLE), we had to impose relatively narrow bounds on $log(b)$, from -13.5 to -9 (Figure \ref{posterior_simple}). This truncation was necessary in order to ensure that the $b$ posterior did not become bimodal. In future iterations of the model, the use of informative priors on the estimable parameters might obviate the need for bounds on $b$.  
+
+\input{simple_tab.tex}
+
+
+
+
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=.52]{../figs/simple_model_fit}
+  \caption{Traditional Ricker model fit for the Harrison stock. Individual observations are represented by the years text on the graph. Maximum likelihood estimates(MLE)are shown and bleue and Bayesian median and 95\% credible intervals are shown in red. }
+\label{simple_fit}
+\end{figure}
+
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=.52]{../figs/posterior_simple_model_fit}
+  \caption{Posterior distributions for $a$, $b$, $\sigma$ and $S_{max}$. }
+\label{posterior_simple}
+\end{figure}
+
+
+\subsection{Recursive Bayes Ricker model for time-varying $a$}
+
+We used following formulation of the Ricker function:
+
+\begin{align} 
+R_t &= S_t \cdot \alpha_t \cdot e^{(-b\cdot S_t + w_t)}   \\ 
+log\frac{R_t}{S_t} &= a_t-b\cdot S_t + w_t\\
+\alpha_t &= e^{a_t} \\
+S_{max} &= \frac{1}{b} \\
+w_t &\sim \mathcal{N}(0,\sigma_R)
+\end{align}
+
+
+The variability in the parameter $a_t$ is given by a recursive Bayes function in which:
+
+\begin{align} 
+\begin{cases}
+a_t = a_0 + v_0 &\quad t=0 \\
+a_t = a_{t-1} + v_t &\quad t>0 \\
+\end{cases}\\
+v_t \sim \mathcal{N}(0,\sigma_v)
+\end{align}
+
+The models observation $\sigma_{R}$ and  process $\sigma_{v}$ standard errors were partitioned as follows
+
+
+\begin{align} 
+\sigma_{R}      = \sqrt{\rho} \cdot \sigma_{\theta}\\
+\sigma_v        = \sqrt{1-\rho} \cdot \sigma_{\theta} 
+\end{align}
+
+Where $\rho$ is the proportion of total variance associated with observation error, and $\sigma_{\theta} $ is the the total standard deviation. In this version of the Ricker model, we included an informative prior on the $\rho$ parameter. In order to evaluate the impact of the prior on the parameter estimates, we fit the model with four different priors. Because the $\rho$ variable is constrained between zero and one, we opted for beta priors with different values for the shape parameters (Figure \ref{priorrho}). The scenarios were defined so that the value of $\rho$ was centered around 0.5 (base case), around 0.3, around 0.7 and an additional uninformative prior. 
+
+%The prior was necessary to prevent the model to allocate all of the variability to observation error ($\rho = 1$). 
+The potential effects of the $\rho$ prior are quite relevant as it will determine how much variability is allocated to process error and, therefore, influence the magnitude of the changes in the productivity parameter $a$. \citet{davis_prior_2018} shows the effects of alternative formulations of this model as well as comprehensive exploration of the impacts of different prior choices.  \citet{davis_prior_2018} used the same data set as the one used in this report.   
+
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=.52]{../figs/priors_rho.pdf}
+  \caption{Priors for $\rho$ used for the recursive Bayes model. Legend indicates the values used for the shape parameters.}
+\label{priorrho}
+\end{figure}
+
+
+
+The $a$ parameters were treated as random effects in the estimation model. The estimated parameters are in Table \ref{estparrec} and the model fit, MLE estimates are shown in Figure \ref{rec_fit}. Similarly to the simple Ricker model, the posterior distribution for the $b$ parameter was truncated by the artificially imposed boundaries on the parameter estimates (Figure \ref{psterior_rec}). The time series of $\alpha$ parameters and credible intervals are shown in Figure \ref{rec_alpha}.  Estimates of $U_{MSY}$ are given on Table \ref{estumsy} and the time trend in $U_{MSY}$ is shown in \ref{rec_umsy}. Both $\alpha$ and $U_{MSY}$ show declines over time. However, it is important to note that the magnitude of these declines is strongly tied to the influence of the beta prior imposed on $\rho$. Alternative prior assumptions lead to more or less error being allocated to the process error ($\sigma_v$) and consequently, alter the magnitude of the changes in both $\alpha$ and $U_{MSY}$ overtime. Additional sensitivity analysis can be found in \citet{davis_prior_2018} and on subsequent sections of this report.  
+
+
+
+
+\input{recursive_tab.tex}
+
+
+
+\input{recursive_tab_umsy.tex}
+
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=.52]{../figs/recursive_pred.pdf}
+  \caption{Recursive Bayes Ricker model for the Harrison stock. Colors indicate predicted values using year-specific $a$ parameters. Individual observations are represented by the years text on the graph.}
+\label{rec_fit}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=.52]{../figs/posterior_recursive_model.pdf}
+  \caption{Posterior distribution for $a$, $b$, $S_{max}$ and $rho$ for the recursive Bayes model.}
+\label{psterior_rec}
+\end{figure}
+
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=.52]{../figs/recursive_a.pdf}
+  \caption{Time trajectory of $a$ using the recursive Bayes model. Lines represent for the posterior median and MLE estimates. Bayesian 95\% credible intervals are represented by the shaded area in red. }
+\label{rec_alpha}
+\end{figure}
+
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=.52]{../figs/recursive_umsy.pdf}
+  \caption{Time trajectory of $U_{MSY}$ using the recursive Bayes model. Lines represent for the posterior median and MLE estimates. Bayesian 95\% credible intervals are represented by the shaded area in red.}
+\label{rec_umsy}
+\end{figure}
+
+
+
+\subsection{Comparison across $\rho$ priors}
+
+We found that the model results are sensitive to the prior used for the $\rho$ parameter and for this reason, we show sensitivity analyses using four alternative priors.  We opted for using the informative prior on $\rho$, centered around 0.5 (Beta(3,3)) as the base case. This decision was based on the lack of information available, as well as the poor convergence obtained when the uninformative prior was used. The uninformative prior lead the model to allocate all of the variability to observation error ($\rho = 1$). Figure \ref{rho_estimates} shows the different priors and posteriors, maximum likelihood estimates (MLE) and median posterior estimates for $\rho$. MLE estimates are always higher than the median posterior estimates. Similarly, the posterior distribution is tends to be skewed toward higher values of $\rho$ when compared to the prior, reinforcing the tendency of the model to allocate most of the variability in the data to observation error.
+
+Despite the difference in the shape of the posterior distributions of $\rho$, little impact was observed on the posterior medians and credible intervals of the time-varying $a$ parameter estimates (Figure \ref{a_estimates_prior}). 
+
+
+
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=.52]{../figs/priors_posteriors.pdf}
+  \caption{Priors, posteriors, median posteriors and maximum likelihood estimates (MLE) for the different prior choices for the $\rho$ parameter.}
+\label{rho_estimates}
+\end{figure}
+
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=.52]{../figs/recursive_a_prior.pdf}
+  \caption{Posterior medians and credible intervals for time-varying $a$, using alternative prior choices for $\rho$ .}
+\label{a_estimates_prior}
+\end{figure}
+
+
+
+\input{recursive_tab_params_comparison.tex}
+
+\subsection{Input parameters for VRAP2}
+
+One of the objectives of this analysis was to produce input parameters for the Viability and Risk Assessment Procedure (VRAP) analysis. As shown in the previous section, there are considerable differences between the estimates depending on prior choice. For this reason, we provide the parameter median posterior estimates for three prior scenarios with $\rho$ centered around 0.5, 0.3, 0.7. The scenario with uninformative prior on $\rho$ was left out because of poor convergence diagnostics. 
+
+The Ricker formulation used in VRAP is  different from the one used in this report. For this reason the parameters were transformed in order to serve as input to the VRAP version. The VRAP version of the Ricker curve and the transformation of the simple Ricker parameters are shown in Equations \ref{vrapricker} to \ref{btrans} . We use the symbol $\sim$ to indicate VRAP parameters. 
+
+
+We also needed to convecal
+
+\begin{align} 
+\label{vrapricker}
+R &= \widetilde{a} \cdot S \cdot e^{-S/\widetilde{b}}\\
+\label{atrans}
+\widetilde{a} &= \alpha \\
+\label{btrans}
+\widetilde{b} &= 1/b
+\end{align}
+
+
+
+ We provide parameter estimates for the model formulation required by VRAP in Table \ref{vraptab}. The VRAP estimates, including uncertainty, are all based on the median posterior distributions shown in the previous section. Instead of relying on median posterior estimates of variance, future versions of VRAP should include parameter vectors directly sampled from the posterior distributions. This would provide a better characterization of the uncertainty around the SR estimates.
+
+
+
+
+
+
+\input{vrap_params2.tex}
+
+
+
+
+%\label{parreccomp} 
+%\input{recursive_tab_umsy_comparison.tex}
+
+
+
+%\subsection{Model considering survival as a covariate}
+
+
+%Survival data was available for most years of the time series and there was interest in using the survival information as a covatiate. For that version, we adapted the traditional Ricker model as follows:
+
+%\begin{align} 
+%R_t &= S_t \cdot \alpha \cdot surv_{a\leq2} \cdot e^{(-b\cdot S_t + w_t)}  \\ 
+%log\frac{R_t}{S_t} &= a_t+ log(surv_{a\leq2}) - b\cdot S_t + w_t\\
+%w_t &\sim \mathcal{N}(0,\sigma_R)
+%\end{align} 
+
+%In this model, the productivity parameter was disentangled into survival from release up to age 2, $surv_{a\leq2}$, and the remaining survival and fecundity effects, $\alpha$. Since survival data was missing for one year, that year was excluded from the analysis. The term for survival here is analogous to the ``M'' term in the VRAP stock recruitment equations \citep{sands_user_2012}. 
+
+%The estimated parameters are in table \ref{estrecsv} and the model fit, MLE estimates only, is shown in figure \ref{rec_sv_fit}. Similarly to the recursive Bayes model, the model that includes the survival covariates also produce a wide range of resulting recruitment curves. However, the pattern in curves' productivity was not as explicit as the one seen in the recursive Bayes model, probably due to the high survival rates estimated for 2005, 2007 and 2010. Another factor that might have contributed to the absence of trends in survival patterns is the uncertainty in the survival estimates themselves. Future iterations of this model might be improved if the juvenile survival effect is considered with uncertainty estimates. 
+
+
+
+%\begin{figure}[htbp]
+%  \centering
+%  \includegraphics[scale=.52]{../figs/survival_model_fit.pdf}
+%  \caption{Ricker model for the Harrison stock with survival up to age two as a covariate. Colors indicate predicted values using year-specific survival. Individual observations are represented by the years text on the graph.}
+%\label{rec_sv_fit}
+%\end{figure}
+
+%\label{estrecsv} 
+%\input{surv_tab.tex}
+
+\section{Potential future work}
+
+
+\begin{itemize}
+  %\item{\bf Error in variables}
+  % \subitem{Uncertainty estimates for the survival data might help illustrate potential trends in the survival data. It would also be interesting to investigate ways of imputing estimates for the year in which data is missing.}
+  \item{\bf Hierarchical approach}
+    \subitem{Extensions of this work could include the estimation of stock recruitment parameters for multiple stocks. Similar work has been done for pink salmon by \citet{su_spatial_2004}.} 
+  \item{\bf Age-structured approach}
+    \subitem{We could also explore the use of a full age structured model, similar to the one shown in \citet{fleischman_age-structured_2013}. This approach would likely provide better information on the split between process and observation error.} 
+  \end{itemize}
+
+\bibliographystyle{apa} 
+\bibliography{report.bib}
+
+
+\end{document}
+
+
+
+
+
+%fn+control+alt+del for clean up!

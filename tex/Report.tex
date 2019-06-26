@@ -37,6 +37,10 @@
 \usepackage{lmodern}
 \usepackage[T1]{fontenc}
 \usepackage{textcomp}
+\usepackage{draftwatermark}
+\SetWatermarkText{DRAFT}
+\SetWatermarkScale{1}
+\SetWatermarkLightness{0.9}
 
 
 \newcommand{\lang}{\textsf} 
@@ -79,7 +83,7 @@
 \doublespacing 
 
 
-\title{Stock recruitment analysis for Harrison river chinook salmom} 
+\title{Stock recruitment analysis for Harrison river chinook salmon} 
 \author{Catarina Wor} 
 \sectionfont{
 \fontsize{12}{12}\selectfont}
@@ -110,13 +114,11 @@
 
 \section{Background}
 
-Estimation of stock and recruitment dynamics for the Harrison River Chinook salmon (\emph{Oncorhynchus tshawytscha}) stock. Stock and R]recruitment dynamics were described with three formulations of the Ricker curve: a simple Ricker model, a recursive Bayes model with time-varying productivity, and a Ricker model including survival up to age two as a covariate. The objective of this analysis was to compare all three versions of the model as well as attempt to identify the significance and magnitude of changes in productivity over time.
+Estimation of stock and recruitment dynamics for the Harrison River Chinook salmon (\emph{Oncorhynchus tshawytscha}) stock. Stock and recruitment dynamics were described with three formulations of the Ricker curve: a simple Ricker model, a recursive Bayes model with time-varying productivity, and a Ricker model including survival up to age two as a covariate. The objective of this analysis was to compare all three versions of the model as well as attempt to identify the significance and magnitude of changes in productivity over time.
 
 
 \section{Data}
  The data used in this analysis is in the file named Harrison\textunderscore simples\textunderscore Apr18.csv. The survival data has a missing observation in the 2004 brood year. For this reason, that year was not included in the analysis that contains survival data.
-
- - need more detail on how the survival data is produced. 
 
 
 \section{Models}
@@ -136,6 +138,11 @@ S_{max} &= \frac{1}{b}\\
 w_t \sim \mathcal{N}(0,\sigma_R)
 \end{align}
 
+In adittion, we produced estimates of the exploitation rate that would produce tha maximum sustainable yield $U_{MSY}$. These estimates were based on the equation provided by \citet{hilborn_quantitative_1992}: 
+
+\begin{align} 
+U_{MSY} &=.5*a-0.07*a^2
+\end{align}
 
 The estimated parameters are in table \ref{estparsimple} and the model fit is shown in figure \ref{simple_fit}. In order to produce Bayesian results that were comparable to the ones seen with the Maximum Likelihood Estimate (MLE), we had to impose relatively narrow bounds on $log(b)$, from -13.5 to -9 (Figure \ref{posterior_simple}). This truncation was necessary in order to ensure that the $b$ posterior did not become bimodal. In future iterations of the model, the use of informative priors on the estimable parameters might obviate the need for narrow bounds on $b$.  
 
@@ -203,12 +210,17 @@ Where $\rho$ is the proportion of total variance associated with observation err
 
 
 
-The $a$ parameters were treated as random effects in the estimation model. The estimated parameters are in table \ref{estparrec} and the model fit, MLE estimates only, is shown in figure \ref{rec_fit}. Similarly to the simple Ricker model, the posterior distribution for the $b$ parameter was truncated by the artificially imposed boundaries on the parameter estimates (Figure \ref{psterior_rec} . The time series of $\alpha$ parameters and credible intervals are shown in figure \ref{rec_alpha}.  
+The $a$ parameters were treated as random effects in the estimation model. The estimated parameters are in table \ref{estparrec} and the model fit, MLE estimates only, is shown in figure \ref{rec_fit}. Similarly to the simple Ricker model, the posterior distribution for the $b$ parameter was truncated by the artificially imposed boundaries on the parameter estimates (Figure \ref{psterior_rec} . The time series of $\alpha$ parameters and credible intervals are shown in figure \ref{rec_alpha}.  Estimates of $U_{MSY}$ are given on table \ref{estumsy} and the time trend in $U_{MSY}$ is shown in \ref{rec_umsy}. Negative values in the credible inter Both $\alpha$ and $U_{MSY}$ show declines over time. However, it is important to note that the magnitude of these declines is strongly tied to the influence of the beta prior imposed on Because the $\rho$ variable is constrained between zero and one, we opted for a beta prior $\rho$. Alternative prior assumptions would lead to more or less being allocated to the  process error ($\sigma_v$) and consequently, alter the magnitude of the changes in both $\alpha$ and $U_{MSY}$ overtime. Additional sensitivity analysis can be found in \citet{davis_prior_2018}.  
 
 
 
 \label{estparrec} 
 \input{recursive_tab.tex}
+
+
+\label{estumsy} 
+\input{recursive_tab_umsy.tex}
+
 
 \begin{figure}[htbp]
   \centering
@@ -228,9 +240,19 @@ The $a$ parameters were treated as random effects in the estimation model. The e
 \begin{figure}[htbp]
   \centering
   \includegraphics[scale=.52]{../figs/recursive_a.pdf}
-  \caption{Time trajectory for the estimates of $a$ using the recursive Bayes model.}
+  \caption{Time trajectory for the estimates of $a$ using the recursive Bayes model. Bayesian 95\% credible intervals are represented by the shaded area in red. }
 \label{rec_alpha}
 \end{figure}
+
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=.52]{../figs/recursive_umsy.pdf}
+  \caption{Time trajectory for the estimates of $U_{MSY}$ using the recursive Bayes model. Bayesian 95\% credible intervals are represented by the shaded area in red.}
+\label{rec_umsy}
+\end{figure}
+
+
 
 \subsection{Model considering survival as a covariate}
 
@@ -243,7 +265,7 @@ log\frac{R_t}{S_t} &= a_t+ log(surv_{a\leq2}) - b\cdot S_t + w_t\\
 w_t &\sim \mathcal{N}(0,\sigma_R)
 \end{align} 
 
-In this model, the productivity parameter was disentangled into survival up to age 2, $surv_{a\leq2}$, and the remaining survival and fecundity effects, $\alpha$. Since survival data was missing for one year, that year was excluded from the analysis
+In this model, the productivity parameter was disentangled into survival from release up to age 2, $surv_{a\leq2}$, and the remaining survival and fecundity effects, $\alpha$. Since survival data was missing for one year, that year was excluded from the analysis. The term for survival here is analogous to the ``M'' term in the VRAP stock recruitment equations \citep{sands_user_2012}. 
 
 The estimated parameters are in table \ref{estrecsv} and the model fit, MLE estimates only, is shown in figure \ref{rec_sv_fit}. Similarly to the recursive Bayes model, the model that includes the survival covariates also produce a wide range of resulting recruitment curves. However, the pattern in curves' productivity was not as explicit as the one seen in the recursive Bayes model, probably due to the high survival rates estimated for 2005, 2007 and 2010. Another factor that might have contributed to the absence of trends in survival patterns is the uncertainty in the survival estimates themselves. Future iterations of this model might be improved if the juvenile survival effect is considered with uncertainty estimates. 
 
@@ -273,7 +295,7 @@ The estimated parameters are in table \ref{estrecsv} and the model fit, MLE esti
     \subitem{We could also explore the use of a full age structured model, similar to the one shown in \citet{fleischman_age-structured_2013}. This approach would allow for the direct consideration of age-specific survival as well as raw tagging data.} 
   \end{itemize}
 
-\bibliographystyle{cell} 
+\bibliographystyle{apa} 
 \bibliography{report.bib}
 
 

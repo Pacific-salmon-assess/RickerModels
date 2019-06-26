@@ -5,7 +5,7 @@
 #==============================================================
 
 
-runTMB<-function(A){
+runTMB<-function(A,comps=TRUE){
 
 	####
 	#This function compiles and runs a standard TMB model
@@ -14,8 +14,10 @@ runTMB<-function(A){
 
   cppfile<-paste(A$dll,".cpp",sep="")
 
-  compile(cppfile,libtmb=FALSE, "-O1 -g", DLLFLAGS="")
-  dyn.load(dynlib(A$dll))
+  if(comps==TRUE){
+    compile(cppfile,libtmb=FALSE, "-O1 -g", DLLFLAGS="")
+    dyn.load(dynlib(A$dll))
+  }
   
   obj<-MakeADFun(A$dat,A$params,random=A$rndm,DLL=A$dll)
   newtonOption(obj, smartsearch=FALSE)
@@ -50,7 +52,7 @@ posteriorsdf<-function(B){
 
     mainrun <- melt(posterior)
 
-    poslist <- list(
+    poslist <- list(fit=fitmcmc1,
         fit_summary=fit_summary,
         posteriors=mainrun,
         mcmcobj=mc
@@ -87,15 +89,22 @@ results_table<-function(D){
 	####
 	#This function produces tex tables with SR function results
 	####
-
+  if(sum(!is.na(D$MCMC))){
     tab<-data.frame(Parameter=D$param_names,
                       MLE=D$MLE,
                       Median=c(apply(D$MCMC,2,function(x) quantile(x, .5)),D$other[2,]),
                       Lower=c(apply(D$MCMC,2,function(x) quantile(x, .025)),D$other[1,]),
                       Upper=c(apply(D$MCMC,2,function(x) quantile(x, .975)),D$other[3,]))
+  }else{
+    tab<-data.frame(Parameter=D$param_names,
+                      MLE=D$MLE,
+                      Median=c(D$other[2,]),
+                      Lower=c(D$other[1,]),
+                      Upper=c(D$other[3,]))
+  }
 
     setwd(D$DIR)
-    tabtmp<-xtable(tab, digits=D$digits,caption = D$caption)
+    tabtmp<-xtable(tab, digits=D$digits,caption = D$caption,label=D$labs)
     digits(tabtmp)<-D$digits
 
     print(tabtmp,sanitize.text.function = function(x) {x},
