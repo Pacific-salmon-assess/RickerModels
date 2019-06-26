@@ -14,17 +14,16 @@ library(reshape)
 library(xtable)
 
 #load in directories.R
-source("C:/Users/worc/Documents/HarrisonSR/R/directories.R")
+#source("C:/Users/worc/Documents/HarrisonSR/R/directories.R")
 #source("/Users/catarinawor/Documents/work/Chinook/srkf/R/directories.R")
 
-setwd(model_dir)
 source("calc_quantile.R")
 source("TMB_functions.R")
 
 
 #read in simple data set
-setwd(data_dir)
-SR<-read.csv("Harrison_simples_Apr18.csv")
+
+SR<-read.csv("../data/Harrison_simples_Apr18.csv")
 
 # LM version
 #simple model
@@ -53,7 +52,7 @@ simpl<-list(
   params=parameters_simple,
   rndm=NULL,
   dll="Ricker_simple",
-  DIR=model_dir
+  DIR="."
   )
 
 simpleobj<-runTMB(simpl)
