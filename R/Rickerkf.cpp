@@ -20,51 +20,61 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(obs_logR);   // observed log recruitment
   DATA_VECTOR(obs_S);    // observed  Spawner
   
-  PARAMETER(alpha);
+  PARAMETER(alphao);
   PARAMETER(logbeta);
-  //PARAMETER(rho);
+ 
+  PARAMETER(logSigalpha);
   PARAMETER(logSigObs);
+
+  PARAMETER_VECTOR(alpha);
   
   int timeSteps=obs_logR.size();
 
   Type beta=exp(logbeta);
-  Type SigObs     = exp(logSigObs);
+  
+  Type Sigalpha=exp(logSigalpha);
+  Type SigObs=exp(logSigObs);
   Type Smax  = Type(1.0)/beta;
-  
-  Type tau     = Type(1.0)/(SigObs*SigObs);
+
+  //Type tauR = Type(1.0)/SigObs;
+  //Type taualpha = Type(1.0)/Sigalpha;
 
 
-  
   vector<Type> pred_logR(timeSteps), logRS(timeSteps);
 
- 
+  //Type ans= -dgamma(tauR,Type(0.01),Type(0.001),true);   
+  //ans+= -dgamma(taualpha,Type(0.01),Type(0.001),true); 
 
-  //priors on precision and variance ratio
-  //Type ans= -dbeta(rho,Type(3.0),Type(3.0),true);  
-  //Type ans= -dnorm(logSigObs,Type(0.0),Type(5.0),true);   
-    Type ans= Type(0);
-  
+  //Type ans= -dgamma(tauR,Type(0.01),Type(0.00001),true);  
+  //ans+= -dgamma(taualpha,Type(0.01),Type(0.00001),true); 
 
+  Type ans= -dnorm(logSigalpha,Type(0.0),Type(1.0),true);  
+  ans+= -dnorm(logSigObs,Type(0.0),Type(1.0),true); 
+
+  ans+= -dnorm(alpha(0),alphao,Sigalpha,true); 
   
+  for(int i=1;i<timeSteps;i++){
   
+    ans+= -dnorm(alpha(i),alpha(i-1),Sigalpha,true);
+  
+  }
 
   for(int i=0;i<timeSteps;i++){
     if(!isNA(obs_logR(i))){
-      logRS(i) = alpha - beta * obs_S(i) ;
+      logRS(i) = alpha(i) - beta * obs_S(i) ;
       pred_logR(i) = logRS(i) + log(obs_S(i)); 
       ans+=-dnorm(obs_logR(i),pred_logR(i),SigObs,true);
     }
   
   }
-  Type umsy     = Type(.5) * alpha - Type(0.07) * (alpha * alpha);
 
   REPORT(pred_logR)
-  REPORT(alpha)
-  REPORT(tau)
-  REPORT(beta)
+  REPORT( alpha)
   REPORT(SigObs)
+  REPORT(Sigalpha)
+  REPORT(beta)
+  REPORT(alphao)
   REPORT(Smax)
-  REPORT(umsy)
   return ans;
 }
 
