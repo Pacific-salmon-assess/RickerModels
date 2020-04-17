@@ -23,9 +23,10 @@ runTMB<-function(A,comps=TRUE){
   newtonOption(obj, smartsearch=FALSE)
   
   opt<-nlminb(obj$par,obj$fn,obj$gr)
-  rep<-obj$report()
+  
 
-  return(obj)
+  return(list(obj=obj,
+    opt=opt))
 }
 
 
@@ -117,31 +118,31 @@ results_table<-function(D){
 
 model_pred_plot<-function(M, salvar=FALSE,DIR="",filename=""){
 
-    sumfit<-apply(M$predBayes,2,function(x) quantile(x, probs=c(0.025,.5,0.975)))
-    fitdf<-as.data.frame(t(sumfit))
-    names(fitdf)<-c("lower","estimate","upper")
-    fitdf<-cbind(fitdf,M$orig_data)
-    fitdf$type<-"Bayesian"
+  sumfit<-apply(M$predBayes,2,function(x) quantile(x, probs=c(0.025,.5,0.975)))
+  fitdf<-as.data.frame(t(sumfit))
+  names(fitdf)<-c("lower","estimate","upper")
+  fitdf<-cbind(fitdf,M$orig_data)
+  fitdf$Type<-"Bayesian"
 
-
-    fitdf1<-fitdf
-    fitdf1$estimate<-M$predFreq
-    fitdf1$lower<-NA
-    fitdf1$upper<-NA
-    fitdf1$type<-"MLE"
+  fitdf1<-fitdf
+  fitdf1$estimate<-M$predFreq
+  fitdf1$lower<-NA
+  fitdf1$upper<-NA
+  fitdf1$Type<-"MLE"
 
   fitdf<-fitdf[order(SR$S_adj),]
   fitdf1<-fitdf1[order(SR$S_adj),]
 
   fitdf<-rbind(fitdf1,fitdf)
 
-    p<-ggplot(fitdf)
-    p<-p+geom_line(aes(x=S_adj,y=estimate, col=type),size=1.5)
-    p<-p+geom_ribbon(aes(x=S_adj,ymin=lower,ymax=upper, fill=type),alpha=0.4)
-    p <- p + geom_text(aes(x=S_adj,y=R,label=BroodYear ),hjust=0, vjust=0)
-    p <- p + theme_bw(16)
-    p <- p + ylab("Recruits") + xlab("Spawners")
-    print(p)
+  p <- ggplot(fitdf)
+  p <- p + geom_line(aes(x=S_adj,y=estimate, col=Type),size=1.5)
+  p <- p + geom_ribbon(aes(x=S_adj,ymin=lower,ymax=upper, fill=Type),alpha=0.4)
+  p <- p + geom_text(aes(x=S_adj,y=R,label=BroodYear ),hjust=0, vjust=0)
+  p <- p + theme_bw(16) + scale_fill_viridis_d(end = 0.8,option = "B")
+  p <- p + scale_color_viridis_d(end = 0.8,option = "B")
+  p <- p + ylab("Recruits") + xlab("Spawners")
+  print(p)
 
     if(salvar){
       setwd(DIR)
