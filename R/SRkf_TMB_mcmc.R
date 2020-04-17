@@ -11,6 +11,7 @@ library(TMB)
 library(bayesplot)
 library(tmbstan)
 library(reshape)
+
 library(xtable)
 
 #load in directories.R
@@ -23,19 +24,19 @@ source("TMB_functions.R")
 
 #read in simple data set
 
-SR<-read.csv("../data/Harrison_simples_Apr18.csv")
+SR <- read.csv("../data/Harrison_simples_Apr18.csv")
 
 # LM version
 #simple model
 
-srm<-lm(log(SR$R/SR$S_adj)~ SR$S_adj)
-a_srm<-srm$coefficients[1]
-b_srm<--srm$coefficients[2]
-alpha<-exp(a_srm)
+srm <- lm(log(SR$R/SR$S_adj)~ SR$S_adj)
+a_srm <- srm$coefficients[1]
+b_srm <- -srm$coefficients[2]
+alpha <- exp(a_srm)
 
-u_msy=.5*a_srm-0.07*a_srm^2
+u_msy <-.5*a_srm-0.07*a_srm^2
 
-predR1<- SR$S_adj*exp(a_srm-b_srm*SR$S_adj)
+predR1 <- SR$S_adj*exp(a_srm-b_srm*SR$S_adj)
 
 mydata<-list(obs_logR=log(SR$R),obs_S=SR$S_adj)
 parameters_simple <- list(
@@ -55,15 +56,19 @@ simpl<-list(
   DIR="."
   )
 
-simpleobj<-runTMB(simpl)
+simple<-runTMB(simpl)
 
+names(simple)
+simple$opt
+
+simpleobj <- simple$obj
 simpleobj$report()
 
 #MCMC
 simpleB<-list(
   obj=simpleobj,
   nchain=3,
-  iter=1000000,
+  iter=100000,
   lowbd=c(0.1,-13.5,-6.0),
   hibd=c(4.0,-8.5,5.0)
 )
@@ -73,14 +78,14 @@ posterior_simple<-posteriorsdf(simpleB)
 #plots
 plot_posteriors(posterior_simple$posteriors)
 #posteriors of derived quantities -- the interesting ones
-simpdf<-posterior_simple$posteriors
+simpdf <- posterior_simple$posteriors
 
-a<-(simpdf$value[simpdf$parameters=="alpha"])
-alpha<-exp(simpdf$value[simpdf$parameters=="alpha"])
-beta<-exp(simpdf$value[simpdf$parameters=="logbeta"])
-Smax<-1/exp(simpdf$value[simpdf$parameters=="logbeta"])
-sig<-exp(simpdf$value[simpdf$parameters=="logSigObs"])
-umsy_simple<-.5*a-0.07*a^2
+a <- simpdf$value[simpdf$parameters=="alpha"]
+alpha <- exp(simpdf$value[simpdf$parameters=="alpha"])
+beta <- exp(simpdf$value[simpdf$parameters=="logbeta"])
+Smax <- 1/exp(simpdf$value[simpdf$parameters=="logbeta"])
+sig <- exp(simpdf$value[simpdf$parameters=="logSigObs"])
+umsy_simple <- .5*a-0.07*a^2
 
 deriv_posteriors<-data.frame(chains=rep(simpdf$chains[simpdf$parameters=="logbeta"],5),
                              parameters = rep(c("a","b","Smax","sig","umsy"),each=length(a)),
@@ -108,7 +113,7 @@ density(a)$x[which.max(density(a)$y)]
 
 
 #Model predictions
-pred_bayes<-matrix(NA,ncol=length(SR$S_adj),nrow=length(a))
+pred_bayes <- matrix(NA,ncol=length(SR$S_adj),nrow=length(a))
 
 SR$S_adj*exp(a[1]+beta[1]*SR$S_adj)
 
@@ -122,7 +127,7 @@ M<-list(
   orig_data=SR
   )
 
-model_pred_plot(M, salvar=TRUE,DIR=figs_dir,filename="simple_model_fit.pdf")
+model_pred_plot(M, salvar=TRUE,DIR="../figs/",filename="simple_model_fit.pdf")
 
 
 #=============================================================================================================
@@ -215,7 +220,15 @@ posterior_recursive<-posteriorsdf(recursiveB)
 
 
 
-plot_posteriors(posterior_recursive$posteriors)
+#plot_posteriors(posterior_recursive$posteriors)
+
+pm <- ggplot(posterior_recursive$posteriors)
+pm <- pm + geom_density(aes(x=value, color=chains), size=1.2)
+pm <- pm + facet_wrap(~parameters, scales="free")
+pm <- pm + theme_bw(16)+labs(colour = "Prior")
+pm <- pm + scale_color_viridis_d(end = 0.8,option = "A")
+pm
+
 
 recrsdf<-posterior_recursive$posteriors
 
@@ -231,6 +244,14 @@ deriv_posteriors<-data.frame(chains=rep(recrsdf$chains[recrsdf$parameters=="logb
                              parameters = rep(c("ao","b","Smax","rho","umsy"),each=length(a)),
                              value = c(a_rb,beta_rb,Smax_rb,rho_rb,umsy_rb)
                              )
+
+
+pm <- ggplot(deriv_posteriors)
+pm <- pm + geom_density(aes(x=value, color=chains), size=1.2)
+pm <- pm + facet_wrap(~parameters, scales="free")
+pm <- pm + theme_bw(16)+labs(colour = "Prior")
+pm <- pm + scale_color_viridis_d(end = 0.8,option = "A")
+pm
 
 plot_posteriors(deriv_posteriors,salvar=TRUE,DIR=figs_dir,nome="posterior_recursive_model_umsy.pdf")
 
@@ -252,11 +273,12 @@ dfa<-data.frame(broodyear=SR$BroodYear,a=c(repkf$alpha,posterior_recursive$fit_s
 pa<-ggplot(dfa)
 pa<-pa+geom_line(aes(x=broodyear,y=a,col=type), size=2)
 pa<-pa+geom_ribbon(aes(x=broodyear,ymin=lower,ymax=upper, fill=type),alpha=.4)
-pa<-pa+theme_bw(16)
+pa<-pa+theme_bw(16) +scale_fill_viridis_d(end = 0.7, option="B")
+pa<-pa+scale_color_viridis_d(end = 0.7, option="B")
 pa<-pa+labs(title = "Recursive Bayes model - time series", y = expression(a), x = "Brood year") 
 pa
-setwd(figs_dir)
-ggsave("recursive_a.pdf", plot=pa, width=10,height=7)
+#setwd(figs_dir)
+ggsave("../figs/recursive_a.pdf", plot=pa, width=10,height=7)
 
 
 names(posterior_recursive$posteriors)
@@ -274,8 +296,8 @@ umsyposteriorsummary<-umsyposteriorsummary[c(1,12,23,25:30,2:11,13:22,24),]
 
 
 Dr<-list(
-  DIR=tex_dir,
-  param_names=c("b","$S_{max}$","$\\rho$",paste("a",SR$BroodYear)),
+  DIR="../tex",
+  param_names=c("$b$","$S_{max}$","$\\rho$",paste("$a$",SR$BroodYear)),
   MLE=c(repkf$beta,repkf$Smax,repkf$rho,repkf$alpha),
   MCMC=cbind(beta,Smax,rho),
   caption = "Parameter estimates for recursive Bayes Ricker model.",
