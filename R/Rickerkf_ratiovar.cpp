@@ -40,7 +40,7 @@ Type objective_function<Type>::operator() ()
   
   int timeSteps=obs_logR.size();
 
-  Type beta=exp(logbeta);
+  Type beta = exp(logbeta);
   Type Smax  = Type(1.0)/beta;
   
   //theta       -> total standard deviation
@@ -53,20 +53,17 @@ Type objective_function<Type>::operator() ()
   Type tau        = sqrt(Type(1.0)-rho) * theta ;
 
 
-  vector<Type> pred_logR(timeSteps), logRS(timeSteps),umsy(timeSteps);
+  vector<Type> pred_logR(timeSteps), logRS(timeSteps),umsy(timeSteps), Smsy(timeSteps);
 
   
 
   //priors on precision and variance ratio
   Type ans= -dbeta(rho,prbeta1,prbeta2,true);  
-  //Type ans= -dbeta(rho,Type(1.0),Type(1.0),true);  
-  //ans+= -dnorm(logvarphi,Type(0.0),Type(5.0),true);   
-  //ans+= -dgamma(varphi,Type(0.001),Type(0.001),true);   
-
+  
   ans+= -dnorm(alpha(0),alphao,tau,true);
-  umsy(0)     = Type(.5) * alpha(0) - Type(0.07) * (alpha(0) * alpha(0)); 
+  umsy(0)     = Type(.5) * alpha(0) - Type(0.07) * (alpha(0) * alpha(0));
+  Smsy(0)     =  alpha(0)/beta * (Type(0.5) -Type(0.07) * alpha(0));  
 
-  //Type ans= -dnorm(alpha(0),alphao,tau,true); 
   
   for(int i=1;i<timeSteps;i++){
   
@@ -78,13 +75,14 @@ Type objective_function<Type>::operator() ()
     if(!isNA(obs_logR(i))){
       logRS(i) = alpha(i) - beta * obs_S(i) ;
       pred_logR(i) = logRS(i) + log(obs_S(i));
-      umsy(i)     = Type(.5) * alpha(i) - Type(0.07) * (alpha(i) * alpha(i)); 
+      umsy(i) = Type(.5) * alpha(i) - Type(0.07) * (alpha(i) * alpha(i)); 
+      Smsy(i) =  alpha(i)/beta * (Type(0.5) -Type(0.07) * alpha(i));
       ans+=-dnorm(obs_logR(i),pred_logR(i),sig,true);
     }
   
   }
 
-  ADREPORT(pred_logR)
+  REPORT(pred_logR)
   REPORT(alpha)
   REPORT(sig)
   REPORT(tau)
@@ -93,7 +91,8 @@ Type objective_function<Type>::operator() ()
   REPORT(varphi)
   REPORT(alphao)
   REPORT(Smax)
-  ADREPORT(umsy)
+  REPORT(umsy)
+  REPORT(Smsy)
   return ans;
 }
 

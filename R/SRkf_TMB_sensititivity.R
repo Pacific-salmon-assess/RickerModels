@@ -108,7 +108,7 @@ ggsave("../figs/posterior_simple_model_fit.pdf", plot=pm, width=10,height=7)
 #pm <- pm + scale_x_discrete(
 #               labels = c(expression(a),expression(b),
 #                expression(sigma),expression(S_max)))
-  print(pm)
+#print(pm)
 
 
 
@@ -253,7 +253,7 @@ recursive<-list(
   DIR="."
   )
 
-recursivebase <- runTMB(recursive,comps=FALSE)
+recursivebase <- runTMB(recursive,comps=TRUE)
 recursivebase$opt
 
 TMBAIC(recursivebase$opt)
@@ -330,13 +330,24 @@ rhodf0p$scn<-"base 3, 3"
 #rh0<-rh0+theme_bw(16)
 #rh0
 
+unique(recrsdf$parameters)
+sob <- recrsdf[grep("logbeta",recrsdf$parameters),]
+sob$value <- exp(sob$value)
+
+sobvals <- rep(sob$value, )
+
+
 soa <- recrsdf[grep("alpha",recrsdf$parameters),]
-summary(soa)
 soa$umsy=.5*soa$value-0.07*soa$value^2
 umsyposteriorsummary<-aggregate(soa$umsy,list(soa$parameters),function(x){quantile(x,probs=c(0.025,.5,.975))})
 umsyposteriorsummary<-umsyposteriorsummary[c(1,12,23,25:30,2:11,13:22,24),]
 
 
+sobvals <- rep(sob$value,length(unique(soa$parameters )))
+soa$Smsy<- soa$value/sobvals * (0.5 - 0.07 * soa$value)
+Smsyposteriorsummary<-aggregate(soa$Smsy,list(soa$parameters),function(x){quantile(x,probs=c(0.025,.5,.975))})
+Smsyposteriorsummary<-Smsyposteriorsummary[c(1,12,23,25:30,2:11,13:22,24),]
+ 
 
 
 dfa<-data.frame(broodyear=SR$BroodYear,a=c(repkf$alpha,posterior_recursive$fit_summary$summary[5:34,6]), 
@@ -368,6 +379,22 @@ pu<-pu+scale_color_viridis_d(end = 0.8, option="B")
 pu<-pu+labs(title = "Recursive Bayes model -  Umsy time series", y = expression(u[MSY]), x = "Brood year") 
 pu
 ggsave("../figs/recursive_umsy.pdf", plot=pu, width=10,height=7)
+
+
+dfs<-data.frame(broodyear=rep(SR$BroodYear,2),Smsy=c(repkf$Smsy,Smsyposteriorsummary$x[,2]), 
+  type=rep(c("MLE","Bayes"),each=length(SR$BroodYear)),lower=c(rep(NA,length(SR$BroodYear)),Smsyposteriorsummary$x[,1]),
+  upper=c(rep(NA,length(SR$BroodYear)),Smsyposteriorsummary$x[,3]))
+
+
+ps <- ggplot(dfs)
+ps <- ps + geom_line(aes(x=broodyear,y=Smsy,col=type), size=2)
+ps <- ps + geom_ribbon(aes(x=broodyear,ymin=lower,ymax=upper, fill=type),alpha=.4)
+ps <- ps + theme_bw(16) + scale_fill_viridis_d(end = 0.8, option="B")
+ps <- ps + scale_color_viridis_d(end = 0.8, option="B")
+ps <- ps + labs(title = "Recursive Bayes model -  Smsy time series", y = expression(S[MSY]), x = "Brood year") 
+ps <- ps + scale_y_continuous(labels = scales::comma) +coord_cartesian(ylim = c(0, 430000)) 
+ps
+
 
 Dr<-list(
   DIR="../tex",

@@ -42,12 +42,13 @@
 \usepackage{lmodern}
 \usepackage[T1]{fontenc}
 \usepackage{textcomp}
+\usepackage[nottoc,numbib]{tocbibind}
 %\usepackage{draftwatermark}
 %\SetWatermarkText{DRAFT}
 %\SetWatermarkScale{1}
 %\SetWatermarkLightness{0.9}
 
-\usepackage[nomarkers]{endfloat}
+%\usepackage[nomarkers]{endfloat}
 
 \newcommand{\lang}{\textsf} 
 
@@ -57,25 +58,6 @@
 \newcommand{\ques}[1]{{\bf\large#1}} 
 \newcommand{\eb}{\\
 \nonumber} 
-
-
-%% The following is used for tables of equations.
-\newcounter{saveEq} 
-\def\putEq{\setcounter{saveEq}{\value{equation}}} 
-\def\getEq{\setcounter{equation}{\value{saveEq}}} 
-\def 
-\tableEq{ 
-
-% equations in tables
-\putEq \setcounter{equation}{0} 
-\renewcommand{\theequation}{T\arabic{table}.\arabic{equation}} \vspace{-5mm} } 
-\expandafter\def\expandafter\UrlBreaks\expandafter{\UrlBreaks%  save the current one
-  \do\a\do\b\do\c\do\d\do\e\do\f\do\g\do\h\do\i\do\j%
-  \do\k\do\l\do\m\do\n\do\o\do\p\do\q\do\r\do\s\do\t%
-  \do\u\do\v\do\w\do\x\do\y\do\z\do\A\do\B\do\C\do\D%
-  \do\E\do\F\do\G\do\H\do\I\do\J\do\K\do\L\do\M\do\N%
-  \do\O\do\P\do\Q\do\R\do\S\do\T\do\U\do\V\do\W\do\X%
-  \do\Y\do\Z}
 
 
 \def\normalEq{ 
@@ -89,8 +71,9 @@
 \doublespacing 
 
 
-\title{Stock recruitment analysis for Harrison river chinook salmon} 
-%\author{Catarina Wor} 
+\title{APPENDIX C: Stock recruitment analysis for Harrison River chinook salmon} 
+%\author{Catarina Wor}
+\date{} 
 \sectionfont{
 \fontsize{12}{12}\selectfont}
 \lstset{ language={[LaTeX]TeX},
@@ -131,7 +114,7 @@
 
 \section{Models}
 
-Two model formulations were explored, the traditional Ricker function and a Bayes recursive model including random walk in the productivity  parameter ($\alpha$). All models were fit using R \citep{r_development_core_team_r:_2008} and the TMB software \citep{kristensen_tmb:_2016}.  Even though all the models were fit to data using Bayesian procedures, we did not explicitly consider priors for all the estimated parameters or derived quantities. Instead, bounds were placed on the estimable parameters, which is comparable to using uniform priors. Later, we argue that the use of proper priors might improve the estimates and confidence bounds reported in this study. All Bayesian posteriors were based on 10000 iterations and three MCMC chains. We used a burn in period of 50000 iterations. Convergence was evaluated with visual inspection of standard diagnostic plots available for the package tmbstan. All code is available from \url{https://github.com/catarinawor/srkf/}. 
+Two model formulations were explored, the traditional Ricker function and a Bayes recursive model including random walk in the productivity  parameter ($\alpha$). All models were fit using R \citep{r_development_core_team_r:_2008} and the TMB software \citep{kristensen_tmb:_2016}.  Even though all the models were fit to data using Bayesian procedures, we did not explicitly consider priors for all the estimated parameters or derived quantities. Instead, bounds were placed on the estimable parameters, which is comparable to using uniform priors. Later, we argue that the use of proper priors might improve the estimates and confidence bounds reported in this study. All Bayesian posteriors were based on 100,000 iterations and three Markov Chain Monte Carlo (MCMC) simulation chains. We used a burn in period of 50,000 iterations. Convergence was evaluated with visual inspection of standard diagnostic plots available for the package tmbstan. All code is available from \url{https://github.com/catarinawor/srkf/}. 
 
 
 \subsection{Ricker model}
@@ -149,14 +132,12 @@ w_t &\sim \mathcal{N}(0,\sigma_R)
 In addition, we produced estimates of the exploitation rate that would produce maximum sustainable yield $U_{MSY}$. These estimates were based on the equation provided by \citet{hilborn_quantitative_1992}: 
 
 \begin{align} 
-U_{MSY} &=.5*a-0.07*a^2
+U_{MSY} &=0.5*a-0.07*a^2
 \end{align}
 
 The estimated parameters are in Table \ref{estparsimple} and the model fit is shown in Figure \ref{simple_fit}. In order to produce Bayesian results that were comparable to the ones seen with the Maximum Likelihood Estimate (MLE), we had to impose relatively narrow bounds on $log(b)$, from -13.5 to -9 (Figure \ref{posterior_simple}). This truncation was necessary in order to ensure that the $b$ posterior did not become bimodal. In future iterations of the model, the use of informative priors on the estimable parameters might obviate the need for bounds on $b$.  
 
 \input{simple_tab.tex}
-
-
 
 
 
@@ -178,7 +159,7 @@ The estimated parameters are in Table \ref{estparsimple} and the model fit is sh
 
 \subsection{Recursive Bayes Ricker model for time-varying $a$}
 
-We used following formulation of the Ricker function:
+We used the following formulation of the Ricker function:
 
 \begin{align} 
 R_t &= S_t \cdot \alpha_t \cdot e^{(-b\cdot S_t + w_t)}   \\ 
@@ -209,7 +190,7 @@ The models observation $\sigma_{R}$ and  process $\sigma_{v}$ standard errors we
 
 Where $\rho$ is the proportion of total variance associated with observation error, and $\sigma_{\theta} $ is the the total standard deviation. In this version of the Ricker model, we included an informative prior on the $\rho$ parameter. In order to evaluate the impact of the prior on the parameter estimates, we fit the model with four different priors. Because the $\rho$ variable is constrained between zero and one, we opted for beta priors with different values for the shape parameters (Figure \ref{priorrho}). The scenarios were defined so that the value of $\rho$ was centered around 0.5 (base case), around 0.3, around 0.7 and an additional uninformative prior. 
 
-%The prior was necessary to prevent the model to allocate all of the variability to observation error ($\rho = 1$). 
+
 The potential effects of the $\rho$ prior are quite relevant as it will determine how much variability is allocated to process error and, therefore, influence the magnitude of the changes in the productivity parameter $a$. \citet{davis_prior_2018} shows the effects of alternative formulations of this model as well as comprehensive exploration of the impacts of different prior choices.  \citet{davis_prior_2018} used the same data set as the one used in this report.   
 
 
@@ -222,7 +203,7 @@ The potential effects of the $\rho$ prior are quite relevant as it will determin
 
 
 
-The $a$ parameters were treated as random effects in the estimation model. The estimated parameters are in Table \ref{estparrec} and the model fit, MLE estimates are shown in Figure \ref{rec_fit}. Similarly to the simple Ricker model, the posterior distribution for the $b$ parameter was truncated by the artificially imposed boundaries on the parameter estimates (Figure \ref{psterior_rec}). The time series of $\alpha$ parameters and credible intervals are shown in Figure \ref{rec_alpha}.  Estimates of $U_{MSY}$ are given on Table \ref{estumsy} and the time trend in $U_{MSY}$ is shown in \ref{rec_umsy}. Both $\alpha$ and $U_{MSY}$ show declines over time. However, it is important to note that the magnitude of these declines is strongly tied to the influence of the beta prior imposed on $\rho$. Alternative prior assumptions lead to more or less error being allocated to the process error ($\sigma_v$) and consequently, alter the magnitude of the changes in both $\alpha$ and $U_{MSY}$ overtime. Additional sensitivity analysis can be found in \citet{davis_prior_2018} and on subsequent sections of this report.  
+The $a$ parameters were treated as random effects in the estimation model. The estimated parameters are in Table \ref{estparrec} and the model fit, MLE estimates are shown in Figure \ref{rec_fit}. Similarly to the simple Ricker model, the posterior distribution for the $b$ parameter was truncated by the artificially imposed boundaries on the parameter estimates. The time series of $\alpha$ parameters and credible intervals are shown in Figure \ref{rec_alpha}.  Estimates of $U_{MSY}$ are given on Table \ref{estumsy} and the time trend in $U_{MSY}$ is shown in \ref{rec_umsy}. Both $\alpha$ and $U_{MSY}$ show declines over time. However, it is important to note that the magnitude of these declines is strongly tied to the influence of the beta prior imposed on $\rho$. Alternative prior assumptions lead to more or less error being allocated to the process error ($\sigma_v$) and consequently, alter the magnitude of the changes in both $\alpha$ and $U_{MSY}$ over time. Additional sensitivity analysis can be found in \citet{davis_prior_2018} and on subsequent sections of this report.  
 
 
 
@@ -241,12 +222,12 @@ The $a$ parameters were treated as random effects in the estimation model. The e
 \label{rec_fit}
 \end{figure}
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[scale=.52]{../figs/posterior_recursive_model.pdf}
-  \caption{Posterior distribution for $a$, $b$, $S_{max}$ and $rho$ for the recursive Bayes model.}
-\label{psterior_rec}
-\end{figure}
+%\begin{figure}[htbp]
+%  \centering
+%  \includegraphics[scale=.52]{../figs/posterior_recursive_model.pdf}
+%  \caption{Posterior distribution for $a$, $b$, $S_{max}$ and $rho$ for the recursive Bayes model.}
+%\label{psterior_rec}
+%\end{figure}
 
 
 \begin{figure}[htbp]
@@ -268,9 +249,9 @@ The $a$ parameters were treated as random effects in the estimation model. The e
 
 \subsection{Comparison across $\rho$ priors}
 
-We found that the model results are sensitive to the prior used for the $\rho$ parameter and for this reason, we show sensitivity analyses using four alternative priors.  We opted for using the informative prior on $\rho$, centered around 0.5 (Beta(3,3)) as the base case. This decision was based on the lack of information available, as well as the poor convergence obtained when the uninformative prior was used. The uninformative prior lead the model to allocate all of the variability to observation error ($\rho = 1$). Figure \ref{rho_estimates} shows the different priors and posteriors, maximum likelihood estimates (MLE) and median posterior estimates for $\rho$. MLE estimates are always higher than the median posterior estimates. Similarly, the posterior distribution is tends to be skewed toward higher values of $\rho$ when compared to the prior, reinforcing the tendency of the model to allocate most of the variability in the data to observation error.
+We found that the model results are sensitive to the prior used for the $\rho$ parameter and for this reason, we show sensitivity analyses using four alternative priors.  We opted for using the informative prior on $\rho$, centered around 0.5 (Beta(3,3)) as the base case. This decision was based on the lack of information available, as well as the poor convergence obtained when the uninformative prior was used. The uninformative prior lead the model to allocate almost all of the variability to observation error ($\rho = 1$). Figure \ref{rho_estimates} shows the different priors and posteriors, maximum likelihood estimates (MLE) and median posterior estimates for $\rho$. MLE estimates are always higher than the median posterior estimates. Similarly, the posterior distribution is skewed toward higher values of $\rho$ when compared to the prior, reinforcing the tendency of the model to allocate more variability in the data to observation error.
 
-Despite the difference in the shape of the posterior distributions of $\rho$, little impact was observed on the posterior medians and credible intervals of the time-varying $a$ parameter estimates (Figure \ref{a_estimates_prior}). 
+Despite the difference in the shape of the posterior distributions of $\rho$, little impact was observed on overall trends of the posterior medians and credible intervals of the time-varying $a$ parameter estimates (Figure \ref{a_estimates_prior}). 
 
 
 
@@ -296,12 +277,11 @@ Despite the difference in the shape of the posterior distributions of $\rho$, li
 
 \subsection{Input parameters for VRAP2}
 
-One of the objectives of this analysis was to produce input parameters for the Viability and Risk Assessment Procedure (VRAP) analysis. As shown in the previous section, there are considerable differences between the estimates depending on prior choice. For this reason, we provide the parameter median posterior estimates for three prior scenarios with $\rho$ centered around 0.5, 0.3, 0.7. The scenario with uninformative prior on $\rho$ was left out because of poor convergence diagnostics. 
+One of the objectives of this analysis was to produce input parameters for the VRAP analysis. As shown in the previous section, there are considerable differences between the estimates depending on prior choice. For this reason, we provide the parameter median posterior estimates for three prior scenarios with $\rho$ centered around 0.5, 0.3, 0.7. The scenario with uninformative prior on $\rho$ was left out because of poor convergence diagnostics. 
 
-The Ricker formulation used in VRAP is  different from the one used in this report. For this reason the parameters were transformed in order to serve as input to the VRAP version. The VRAP version of the Ricker curve and the transformation of the simple Ricker parameters are shown in Equations \ref{vrapricker} to \ref{btrans} . We use the symbol $\sim$ to indicate VRAP parameters. 
+The Ricker formulation used in VRAP is different from the one used in this report. For this reason the parameters were transformed in order to serve as input to the VRAP version. The VRAP version of the Ricker curve and the transformation of the simple Ricker parameters are shown in Equations \ref{vrapricker} to \ref{btrans} . We use the symbol $\sim$ to indicate VRAP parameters. 
 
 
-We also needed to convecal
 
 \begin{align} 
 \label{vrapricker}
@@ -313,8 +293,22 @@ R &= \widetilde{a} \cdot S \cdot e^{-S/\widetilde{b}}\\
 \end{align}
 
 
+VRAP assumes that the variability around the Ricker curve follows gamma distribution. In contrast,  the Ricker models in this study assume a lognormal error distribution. In order to accomodate the VRAP assumption, we calculated the gamma scale and shape parameters based on the mean and variance  error estimate for each MCMC iteration. Transformations to gamma distribution were are shown in equations \ref{meanRgamma} - \ref{shapegamma}.   
 
- We provide parameter estimates for the model formulation required by VRAP in Table \ref{vraptab}. The VRAP estimates, including uncertainty, are all based on the median posterior distributions shown in the previous section. Instead of relying on median posterior estimates of variance, future versions of VRAP should include parameter vectors directly sampled from the posterior distributions. This would provide a better characterization of the uncertainty around the SR estimates.
+
+\begin{align} 
+\label{meanRgamma}
+meanR &= mean(\frac{R_{pred}}{R_{obs}}))\\
+\label{varRgamma}
+varR &= mean(\frac{R_{pred}}{R_{obs}}))\\
+\label{scalegamma}
+scale &= \frac{varR}{meanR} \\
+\label{shapegamma}
+shape &= \frac{meanR}{scale} 
+\end{align}
+
+
+ Parameter estimates for the model formulation required by VRAP  are provided in Table \ref{vraptab}. The VRAP estimates, including uncertainty, are all based on the median posterior distributions shown in the previous section. Instead of relying on median posterior estimates of variance, future versions of VRAP should include parameter vectors directly sampled from the posterior distributions. This will also minimize the mismatch in assumptions of error distribution around fitted curve and would provide a better characterization of the uncertainty around the SR estimates.
 
 
 
@@ -365,12 +359,13 @@ R &= \widetilde{a} \cdot S \cdot e^{-S/\widetilde{b}}\\
   %\item{\bf Error in variables}
   % \subitem{Uncertainty estimates for the survival data might help illustrate potential trends in the survival data. It would also be interesting to investigate ways of imputing estimates for the year in which data is missing.}
   \item{\bf Hierarchical approach}
-    \subitem{Extensions of this work could include the estimation of stock recruitment parameters for multiple stocks. Similar work has been done for pink salmon by \citet{su_spatial_2004}.} 
+    \subitem{Extensions of this work could include the estimation of stock recruitment parameters for multiple stocks. Similar work has been done for Pink salmon by \citet{su_spatial_2004}.} 
   \item{\bf Age-structured approach}
-    \subitem{We could also explore the use of a full age structured model, similar to the one shown in \citet{fleischman_age-structured_2013}. This approach would likely provide better information on the split between process and observation error.} 
+    \subitem{We could also explore the use of a full age-structured model, similar to the one shown in \citet{fleischman_age-structured_2013}. This approach would likely provide better information on the split between process and observation error.} 
   \end{itemize}
 
-\bibliographystyle{apa} 
+
+\bibliographystyle{cell} 
 \bibliography{report.bib}
 
 
