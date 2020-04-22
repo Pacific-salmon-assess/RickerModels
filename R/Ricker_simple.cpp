@@ -27,15 +27,15 @@ Type objective_function<Type>::operator() ()
   
   int timeSteps=obs_logR.size();
 
-  Type beta=exp(logbeta);
-  Type SigObs     = exp(logSigObs);
+  Type beta = exp(logbeta);
+  Type SigObs = exp(logSigObs);
   Type Smax  = Type(1.0)/beta;
   
   Type tau     = Type(1.0)/(SigObs*SigObs);
 
 
   
-  vector<Type> pred_logR(timeSteps), logRS(timeSteps);
+  vector<Type> pred_logR(timeSteps), logRS(timeSteps), residuals(timeSteps);
 
  
 
@@ -52,6 +52,7 @@ Type objective_function<Type>::operator() ()
     if(!isNA(obs_logR(i))){
       logRS(i) = alpha - beta * obs_S(i) ;
       pred_logR(i) = logRS(i) + log(obs_S(i)); 
+      residuals(i) = obs_logR(i) - pred_logR(i);
       ans+=-dnorm(obs_logR(i),pred_logR(i),SigObs,true);
     }
   
@@ -59,6 +60,7 @@ Type objective_function<Type>::operator() ()
   Type umsy     = Type(.5) * alpha - Type(0.07) * (alpha * alpha);
 
   REPORT(pred_logR)
+  REPORT(residuals)
   REPORT(alpha)
   REPORT(tau)
   REPORT(beta)
