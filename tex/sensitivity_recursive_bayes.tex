@@ -16,7 +16,7 @@
 \usepackage[left=1.2in,right=1.2in,top=1.2in,bottom=1.2in]{geometry} 
 
 % sets the margins
-\usepackage{fancyhdr} 
+c
 \usepackage{setspace} 
 \usepackage{indentfirst} 
 \usepackage{titlesec} 
@@ -123,16 +123,17 @@ We used the traditional linear formulation of the Ricker function:
 
 \begin{align} 
 R_t &= S_t \cdot \alpha \cdot e^{(-b\cdot S_t + w_t)}  \\ 
-log\frac{R_t}{S_t} &= a-b\cdot S_t + w_t \\
+log\frac{R_t}{S_t} &= a-b \cdot S_t + w_t \\
 S_{max} &= \frac{1}{b}\\
 \alpha &= e^{a}\\
 w_t &\sim \mathcal{N}(0,\sigma_R)
 \end{align}
 
-In addition, we produced estimates of the exploitation rate that would produce maximum sustainable yield $U_{MSY}$. These estimates were based on the equation provided by \citet{hilborn_quantitative_1992}: 
+In addition, we produced estimates of the exploitation rate that would produce maximum sustainable yield $U_{MSY}$ and estimates of the number of spawners that would produce maximum sustainable yield $S_{MSY}$. These estimates were based on the equation provided by \citet{hilborn_quantitative_1992}: 
 
 \begin{align} 
-U_{MSY} &=0.5*a-0.07*a^2
+U_{MSY} &= 0.5*a-0.07\cdot a^2
+S_{MSY} &= \frac{a}{b} \cdot (0.5-0.07 \cdot a)
 \end{align}
 
 The estimated parameters are in Table \ref{estparsimple} and the model fit is shown in Figure \ref{simple_fit}. In order to produce Bayesian results that were comparable to the ones seen with the Maximum Likelihood Estimate (MLE), we had to impose relatively narrow bounds on $log(b)$, from -13.5 to -9 (Figure \ref{posterior_simple}). This truncation was necessary in order to ensure that the $b$ posterior did not become bimodal. In future iterations of the model, the use of informative priors on the estimable parameters might obviate the need for bounds on $b$.  
@@ -194,7 +195,7 @@ Where $\rho$ is the proportion of total variance associated with observation err
 The potential effects of the $\rho$ prior are quite relevant as it will determine how much variability is allocated to process error and, therefore, influence the magnitude of the changes in the productivity parameter $a$. \citet{davis_prior_2018} shows the effects of alternative formulations of this model as well as comprehensive exploration of the impacts of different prior choices.  \citet{davis_prior_2018} used the same data set as the one used in this report.   
 
 
-\begin{figure}[ht]
+\begin{figure}[H]
   \centering
   \includegraphics[scale=.52]{../figs/priors_rho.pdf}
   \caption{Priors for $\rho$ used for the recursive Bayes model. Legend indicates the values used for the shape parameters.}
@@ -203,7 +204,7 @@ The potential effects of the $\rho$ prior are quite relevant as it will determin
 
 
 
-The $a$ parameters were treated as random effects in the estimation model. The estimated parameters are in Table \ref{estparrec} and the model fit, MLE estimates are shown in Figure \ref{rec_fit}. Similarly to the simple Ricker model, the posterior distribution for the $b$ parameter was truncated by the artificially imposed boundaries on the parameter estimates. The time series of $\alpha$ parameters and credible intervals are shown in Figure \ref{rec_alpha}.  Estimates of $U_{MSY}$ are given on Table \ref{estumsy} and the time trend in $U_{MSY}$ is shown in \ref{rec_umsy}. Both $\alpha$ and $U_{MSY}$ show declines over time. However, it is important to note that the magnitude of these declines is strongly tied to the influence of the beta prior imposed on $\rho$. Alternative prior assumptions lead to more or less error being allocated to the process error ($\sigma_v$) and consequently, alter the magnitude of the changes in both $\alpha$ and $U_{MSY}$ over time. Additional sensitivity analysis can be found in \citet{davis_prior_2018} and on subsequent sections of this report.  
+The $a$ parameters were treated as random effects in the estimation model. The estimated parameters are in Table \ref{estparrec} and the model fit, MLE estimates are shown in Figure \ref{rec_fit}. Similarly to the simple Ricker model, the posterior distribution for the $b$ parameter was truncated by the artificially imposed boundaries on the parameter estimates. The time series of $\alpha$ parameters and credible intervals are shown in Figure \ref{rec_alpha}.  Estimates of $U_{MSY}$ are given on Table \ref{estumsy} and the time trend in $U_{MSY}$ and $S_{MSY}$ is shown in Figures\ref{rec_umsy} and \ref{rec_smsy}. Both $\alpha$ and $U_{MSY}$ show declines over time. However, it is important to note that the magnitude of these declines is strongly tied to the influence of the beta prior imposed on $\rho$. Alternative prior assumptions lead to more or less error being allocated to the process error ($\sigma_v$) and consequently, alter the magnitude of the changes in both $\alpha$ and $U_{MSY}$ over time. Additional sensitivity analysis can be found in \citet{davis_prior_2018} and on subsequent sections of this report.  
 
 
 
@@ -215,7 +216,7 @@ The $a$ parameters were treated as random effects in the estimation model. The e
 \input{recursive_tab_umsy.tex}
 
 
-\begin{figure}[ht]
+\begin{figure}[h]
   \centering
   \includegraphics[scale=.52]{../figs/recursive_pred.pdf}
   \caption{Recursive Bayes Ricker model for the Harrison stock. Colors indicate predicted values using year-specific $a$ parameters. Individual observations are represented by the years text on the graph.}
@@ -230,22 +231,27 @@ The $a$ parameters were treated as random effects in the estimation model. The e
 %\end{figure}
 
 
-\begin{figure}[htbp]
+\begin{figure}[h]
   \centering
   \includegraphics[scale=.52]{../figs/recursive_a.pdf}
-  \caption{Time trajectory of $a$ using the recursive Bayes model. Lines represent for the posterior median and MLE estimates. Bayesian 95\% credible intervals are represented by the shaded area in red. }
+  \caption{Time trajectory of $a$ using the recursive Bayes model. Lines represent for the posterior median and MLE estimates. Bayesian 95\% credible intervals are represented by the shaded area in gray. }
 \label{rec_alpha}
 \end{figure}
 
 
-\begin{figure}[htbp]
+\begin{figure}[h]
   \centering
   \includegraphics[scale=.52]{../figs/recursive_umsy.pdf}
-  \caption{Time trajectory of $U_{MSY}$ using the recursive Bayes model. Lines represent for the posterior median and MLE estimates. Bayesian 95\% credible intervals are represented by the shaded area in red.}
+  \caption{Time trajectory of $U_{MSY}$ using the recursive Bayes model. Lines represent for the posterior median and MLE estimates. Bayesian 95\% credible intervals are represented by the shaded area in gray.}
 \label{rec_umsy}
 \end{figure}
 
-
+\begin{figure}[h]
+  \centering
+  \includegraphics[scale=.52]{../figs/recursive_Smsy.pdf}
+  \caption{Time trajectory of $S_{MSY}$ using the recursive Bayes model. Lines represent for the posterior median and MLE estimates. Bayesian 95\% credible intervals are represented by the shaded area in gray.}
+\label{rec_smsy}
+\end{figure}
 
 \subsection{Comparison across $\rho$ priors}
 

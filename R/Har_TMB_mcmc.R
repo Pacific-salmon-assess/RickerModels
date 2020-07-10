@@ -1,22 +1,17 @@
 #=================================================================
-#Simple fit exploration of SR data
+#Fits of models to be used in Frase chinook RPA
 #Author: Catarina Wor
-#Date: April 10th 2018
+#Date: April 10th 2018 - Reviewed June 2020
 #=================================================================
 
 #load in required packages and libraries
 library(ggplot2)
 library(TMB)
-#library(TMBhelper) -- not available in most recent R versions
 library(bayesplot)
 library(tmbstan)
 library(reshape)
-
 library(xtable)
 
-#load in directories.R
-#source("C:/Users/worc/Documents/HarrisonSR/R/directories.R")
-#source("/Users/catarinawor/Documents/work/Chinook/srkf/R/directories.R")
 
 source("calc_quantile.R")
 source("TMB_functions.R")
@@ -26,8 +21,11 @@ source("TMB_functions.R")
 
 SR <- read.csv("../data/Harrison_simples_Apr18.csv")
 
+#=================================================================
+#Simple Ricker model
+
 # LM version
-#simple model
+
 
 srm <- lm(log(SR$R/SR$S_adj)~ SR$S_adj)
 par()

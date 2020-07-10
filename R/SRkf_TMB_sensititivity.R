@@ -55,7 +55,12 @@ simpl<-list(
 simple <- runTMB(simpl)
 
 simple$opt
-TMBAIC(simple$opt)
+TMBAIC(simple$opt) #77.57106
+
+TMBAIC(recursivep2$opt)-TMBAIC(simple$opt)
+
+2*3-2*-35.78553
+
 simpleobj <- simple$obj
 
 simpleobj$report()
@@ -140,6 +145,7 @@ pr1 <- dbeta(x,1,1)
 pr2 <- dbeta(x,3,3)
 pr3 <- dbeta(x,2,3)
 pr4 <- dbeta(x,3,2)
+pr4 <- dbeta(x,4,2)
 #
 dfpr<-data.frame(x=rep(x,4),val=c(pr1,pr2,pr3,pr4),
   type=rep(c("uninformative 1, 1"," base 3, 3","low obs 2, 3","high obs 3, 2"),each=length(x)))
@@ -242,7 +248,7 @@ rhodf1p$scn<-"uninformative 1, 1"
 #============================================================================================
 #============================================================================================
 #base case
-mydata<-list(obs_logR=log(SR$R),obs_S=SR$S_adj,prbeta1=3.0,prbeta2=3.0)
+mydata<-list(obs_logR=log(SR$R),obs_S=SR$S_adj,prbeta1=4.0,prbeta2=4.0)
 
 
 recursive<-list(
@@ -256,8 +262,8 @@ recursive<-list(
 recursivebase <- runTMB(recursive,comps=TRUE)
 recursivebase$opt
 
-TMBAIC(recursivebase$opt)
-
+TMBAIC(recursivebase$opt) #80.54305
+2*4-2*-36.27152
 
 
 recursiveobj <- recursivebase$obj
@@ -392,9 +398,9 @@ ps <- ps + geom_ribbon(aes(x=broodyear,ymin=lower,ymax=upper, fill=type),alpha=.
 ps <- ps + theme_bw(16) + scale_fill_viridis_d(end = 0.8, option="B")
 ps <- ps + scale_color_viridis_d(end = 0.8, option="B")
 ps <- ps + labs(title = "Recursive Bayes model -  Smsy time series", y = expression(S[MSY]), x = "Brood year") 
-ps <- ps + scale_y_continuous(labels = scales::comma) +coord_cartesian(ylim = c(0, 430000)) 
+ps <- ps + scale_y_continuous(labels = scales::comma) + coord_cartesian(ylim = c(0, 430000)) 
 ps
-
+ggsave("../figs/recursive_Smsy.pdf", plot=ps, width=10,height=7)
 
 Dr<-list(
   DIR="../tex",
@@ -429,8 +435,8 @@ results_table(Dr)
 #============================================================================================
 #============================================================================================
 # high observation error
-mydata2<-list(obs_logR=log(SR$R),obs_S=SR$S_adj,prbeta1=3.0,prbeta2=2.0)
-
+mydata2<-list(obs_logR=log(SR$R),obs_S=SR$S_adj,prbeta1=3.0,prbeta2=2)
+mydata2<-list(obs_logR=log(SR$R),obs_S=SR$S_adj,prbeta1=4.0,prbeta2=1.5)
 recursive2<-list(
   dat=mydata2,
   params=parameters_recursive,
@@ -442,6 +448,7 @@ recursive2<-list(
 recursivep2<-runTMB(recursive2,comps=FALSE)
 recursivep2$opt
 TMBAIC(recursivep2$opt)
+TMBAIC(simple$opt)
 recursiveobj2<-recursivep2$obj
 repkf2<-recursiveobj2$report()
 

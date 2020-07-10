@@ -47,7 +47,7 @@ Type objective_function<Type>::operator() ()
   
   int timeSteps=obs_logR.size();
 
-  Type beta=exp(logbeta);
+  Type beta = exp(logbeta);
   Type Smax  = Type(1.0)/beta;
   
   //theta       -> total standard deviation
