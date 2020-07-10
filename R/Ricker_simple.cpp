@@ -45,8 +45,6 @@ Type objective_function<Type>::operator() ()
     Type ans= Type(0);
   
 
-  
-  
 
   for(int i=0;i<timeSteps;i++){
     if(!isNA(obs_logR(i))){
