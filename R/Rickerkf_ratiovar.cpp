@@ -53,7 +53,7 @@ Type objective_function<Type>::operator() ()
   Type tau        = sqrt(Type(1.0)-rho) * theta ;
 
 
-  vector<Type> pred_logR(timeSteps), logRS(timeSteps),umsy(timeSteps), Smsy(timeSteps);
+  vector<Type> pred_logR(timeSteps), logRS(timeSteps),umsy(timeSteps), Smsy(timeSteps), residuals(timeSteps);
 
   
 
@@ -77,6 +77,7 @@ Type objective_function<Type>::operator() ()
       pred_logR(i) = logRS(i) + log(obs_S(i));
       umsy(i) = Type(.5) * alpha(i) - Type(0.07) * (alpha(i) * alpha(i)); 
       Smsy(i) =  alpha(i)/beta * (Type(0.5) -Type(0.07) * alpha(i));
+      residuals(i) = obs_logR(i) - pred_logR(i);
       ans+=-dnorm(obs_logR(i),pred_logR(i),sig,true);
     }
   
@@ -87,6 +88,7 @@ Type objective_function<Type>::operator() ()
   REPORT(sig)
   REPORT(tau)
   REPORT(rho)
+  REPORT(residuals)
   REPORT(beta)
   REPORT(varphi)
   REPORT(alphao)

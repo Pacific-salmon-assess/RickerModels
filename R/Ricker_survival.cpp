@@ -35,10 +35,11 @@ Type objective_function<Type>::operator() ()
   Type SigObs     = exp(logSigObs);
   //Type Sigtheta     = exp(logSigtheta);
   Type Smax  = Type(1.0)/beta;
+  Type Smsy, umsy;
   
   Type tau     = Type(1.0)/(SigObs*SigObs);
   
-  vector<Type> pred_logR(timeSteps), logRS(timeSteps);
+  vector<Type> pred_logR(timeSteps), logRS(timeSteps), residuals(timeSteps);
 
  
 
@@ -51,23 +52,29 @@ Type objective_function<Type>::operator() ()
 
   for(int i=0;i<timeSteps;i++){
     if(!isNA(obs_survival(i))){
-      //surv(i)= obs_survival(i) + obserrsurv(i)
+      
       logRS(i) = alpha + log(obs_survival(i)) - beta * obs_S(i) ;
-      //logRS(i) = alpha + logsurv(i) - beta * obs_S(i) ;
       pred_logR(i) = logRS(i) + log(obs_S(i));
-      //ans+=-dnorm(log(obs_survival(i)),logsurv(i),thetaObs,true); 
+      residuals(i) = obs_logR(i) - pred_logR(i);
       ans+=-dnorm(obs_logR(i),pred_logR(i),SigObs,true);
     }
   
   }
 
+  umsy     = Type(.5) * alpha - Type(0.07) * (alpha * alpha);
+  Smsy     =  alpha/beta * (Type(0.5) -Type(0.07) * alpha);  
+
+
   REPORT(pred_logR)
   REPORT(alpha)
+  REPORT(residuals)
   //REPORT(atwosurv)
   REPORT(tau)
   REPORT(beta)
   REPORT(SigObs)
   REPORT(Smax)
+  REPORT(umsy)
+  REPORT(Smsy)
   return ans;
 }
 

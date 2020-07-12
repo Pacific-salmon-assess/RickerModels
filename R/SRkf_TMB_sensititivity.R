@@ -13,30 +13,31 @@ library(tmbstan)
 library(reshape)
 library(xtable)
 library(TMBhelper)
+library(cowplot)
 
-#load in directories.R
-#set to current directory instead
-#source("C:/Users/worc/Documents/HarrisonSR/R/directories.R")
-#source("/Users/catarinawor/Documents/work/Chinook/srkf/R/directories.R")
-
-#setwd(model_dir)
 source("calc_quantile.R")
 source("TMB_functions.R")
 
 #read in simple data set
 SR <- read.csv("../data/Harrison_simples_Apr18.csv")
 
-iteracs=100000
-# LM version
-#simple model
+#=================================================================
+#Simple Ricker model
 
+iteracs=100000
+
+# LM version
 srm<-lm(log(SR$R/SR$S_adj)~ SR$S_adj)
 a_srm<-srm$coefficients[1]
 b_srm<--srm$coefficients[2]
 alpha<-exp(a_srm)
 
-u_msy=.5*a_srm-0.07*a_srm^2
-predR1<- SR$S_adj*exp(a_srm-b_srm*SR$S_adj)
+par(mfrow=c(2,2))
+
+u_msy <- .5*a_srm-0.07*a_srm^2
+S_msy <- a_srm/b_srm * (0.5 -0.07 * a_srm);
+
+predR1 <- SR$S_adj*exp(a_srm-b_srm*SR$S_adj)
 
 mydata<-list(obs_logR=log(SR$R),obs_S=SR$S_adj)
 parameters_simple <- list(
@@ -49,27 +50,28 @@ simpl<-list(
   params=parameters_simple,
   rndm=NULL,
   dll="Ricker_simple",
-  DIR="."
-  )
+  DIR="." )
 
 simple <- runTMB(simpl)
 
-simple$opt
-TMBAIC(simple$opt) #77.57106
+simpleRickerAIC <- 2*3-2*-simple$opt$objective
 
-TMBAIC(recursivep2$opt)-TMBAIC(simple$opt)
-
-2*3-2*-35.78553
-
-simpleobj <- simple$obj
-
-simpleobj$report()
 
 
 #diagnosticts
-qqnorm(simpleobj$report()$residuals)
+qqnorm(simple$obj$report()$residuals)
 abline(0,1)
 
+SRdiagsimple <- SR
+SRdiagsimple$residuals <- simple$obj$report()$residuals
+
+rp <- ggplot(SRdiagsimple)
+rp <- rp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+rp <- rp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+rp <- rp + geom_hline(yintercept = 0)
+rp <- rp + theme_bw(16)
+rp <- rp + scale_color_viridis_c(end = 0.8)
+rp
 
 #MCMC
 simpleB<-list(
@@ -134,6 +136,138 @@ for(i in 1:length(sig)){
 
 }
 
+#=============================================================================================================
+#Autocorrelated recruitment model 
+
+mydata<-list(obs_logR=log(SR$R),obs_S=SR$S_adj)
+
+parameters_autocorr <- list(
+  alpha=(a_srm),
+  logbeta = log(b_srm),
+  logSigObs= log(.4), 
+  rho=0.3,
+  delta=rep(0.0,length(SR$R)))
+
+
+
+compile("Ricker_autocorr.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
+dyn.load(dynlib("Ricker_autocorr"))
+
+obj<-MakeADFun(mydata,parameters_autocorr,random="delta",DLL="Ricker_autocorr")
+  newtonOption(obj, smartsearch=FALSE)
+  
+opt<-nlminb(obj$par,obj$fn,obj$gr)
+
+
+obj$report()
+TMBAIC(opt) 
+autoRickerAIC <- 2*4-2*-opt$objective
+
+
+
+restab <- data.frame(Parameter=c("$b$","$S_{max}$","\\alpha","$\\rho$",paste("$\\epsilon_{",SR$BroodYear,"}$")),
+          MLE=c(obj$report()$beta,obj$report()$Smax,obj$report()$alpha,obj$report()$rho,obj$report()$epsilon))
+
+xtable(restab, digits=4,caption = "Ricker recruitment autocorrelaton MLE estimates")
+SRdiagauto<-SR
+SRdiagauto$residuals <- obj$report()$residuals
+
+SRdiagauto$epsilon <- obj$report()$epsilon
+SRdiagauto$model <- "autocorrelation in Recruitment"
+
+
+rp <- ggplot(SRdiagauto)
+rp <- rp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+rp <- rp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+rp <- rp + geom_hline(yintercept = 0)
+rp <- rp + theme_bw(16)
+rp <- rp + scale_color_viridis_c(end = 0.8)
+rp <- rp + labs(title="autocorrelation in Recruitment", x = "Spawners", y = "Recruits") 
+rp
+
+
+
+ep <- ggplot(SRdiagauto)
+ep <- ep + geom_line(aes(x=BroodYear,y=epsilon),size=1.2)
+ep <- ep + geom_point(aes(x=BroodYear,y=epsilon, col=epsilon),stroke=3)
+ep <- ep + geom_hline(yintercept = 0)
+ep <- ep + theme_bw(16)
+ep <- ep + scale_color_viridis_c(end = 0.8)
+ep
+
+
+
+Splot<-seq(0,obj$report()$Smax*2)
+Rpred<-Splot*exp(obj$report()$alpha)*exp(-obj$report()$beta*Splot)
+df<-data.frame(Spawners=Splot,Rpred=Rpred)
+
+
+p <- ggplot(df)
+p <- p + geom_line(aes(x=Spawners,y=Rpred), size=2, alpha=0.6)
+p <- p + geom_text(data=SR, aes(x=S_adj,y=R,label=BroodYear ),hjust=0, vjust=0)
+p <- p + theme_bw(16)
+p <- p + labs( x = "Spawners", y = "Recruits") 
+p
+
+
+
+#=============================================================================================================
+#model with age 2 survival as a covariate 
+SRsurv <- read.csv("../data/Harrison_simples_survchi.csv")
+
+
+
+
+ep <- ggplot(SRsurv)
+ep <- ep + geom_line(aes(x=BroodYear,y=(Age2Surv)),size=1.2)
+ep <- ep + geom_point(aes(x=BroodYear,y=(Age2Surv), col=(Age2Surv)),stroke=3)
+ep <- ep + geom_hline(yintercept = mean((SRsurv$Age2Surv),na.rm=T))
+ep <- ep + theme_bw(16)
+ep <- ep + scale_color_viridis_c(end = 0.8)
+ep
+
+
+ 
+mydata_surv<-list(obs_logR=log(SRsurv$R[!is.na(SRsurv$Age2Surv)]),obs_S=SRsurv$S_adj[!is.na(SRsurv$Age2Surv)],
+  obs_survival=SRsurv$Age2Surv[!is.na(SRsurv$Age2Surv)])
+  
+parameters_surv <- list(
+  alpha=0.91298,
+  logbeta = log(b_srm),
+  logSigObs= 0
+  )
+
+
+compile("Ricker_survival.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
+dyn.load(dynlib("Ricker_survival"))
+
+ 
+obj_surv<-MakeADFun(mydata_surv,parameters_surv,random=NULL,DLL="Ricker_survival")
+newtonOption(obj_surv, smartsearch=FALSE)
+
+#newtonOption(smartsearch=FALSE)
+
+obj_surv$fn()
+obj_surv$gr()
+opt_surv<-nlminb(obj_surv$par,obj_surv$fn,obj_surv$gr)
+rep_surv<-obj_surv$report()
+
+TMBAIC(opt_surv)
+
+
+SRsurv$residuals[!(is.na(SRsurv$Age2Surv))] <- obj_surv$report()$residuals
+SRsurv$model <- "survival to age 2 as a covariate"
+SRsurv$epsilon <- NA
+
+rsp <- ggplot(SRsurv )
+rsp <- rsp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+rsp <- rsp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+rsp <- rsp + geom_hline(yintercept = 0)
+rsp <- rsp + theme_bw(16)
+rsp <- rsp + scale_color_viridis_c(end = 0.8)
+rsp <- rsp + labs(title ="survival to age 2 as a covariate", x = "Spawners", y = "Recruits") 
+rsp
+
 
 #=============================================================================================================
 #Recursive Bayes model - and prior sensitivity
@@ -145,7 +279,7 @@ pr1 <- dbeta(x,1,1)
 pr2 <- dbeta(x,3,3)
 pr3 <- dbeta(x,2,3)
 pr4 <- dbeta(x,3,2)
-pr4 <- dbeta(x,4,2)
+
 #
 dfpr<-data.frame(x=rep(x,4),val=c(pr1,pr2,pr3,pr4),
   type=rep(c("uninformative 1, 1"," base 3, 3","low obs 2, 3","high obs 3, 2"),each=length(x)))
@@ -164,91 +298,20 @@ ggsave("../figs/priors_Rho.pdf", plot=pr, width=10,height=7)
 
 # uninformative scenario
 
+
+#============================================================================================
+#base case
+mydata<-list(obs_logR=log(SR$R),obs_S=SR$S_adj,prbeta1=3,prbeta2=3)
+
+
 parameters_recursive <- list(
   alphao=a_srm,
   logbeta = log(b_srm),
   rho=.2,
+  #logtheta = log(.8),
   logvarphi= 0.1,
   alpha=rep(0.9,length(SR$R))
   )
-
-
-mydata1<-list(obs_logR=log(SR$R),obs_S=SR$S_adj,prbeta1=1.0,prbeta2=1.0)
-
-recursive1<-list(
-  dat=mydata1,
-  params=parameters_recursive,
-  rndm="alpha",
-  dll="Rickerkf_ratiovar",
-  DIR="."
-  )
-
-
-recursive1<-runTMB(recursive1, comps=TRUE)
-recursive1$opt
-recursiveobj1<-recursive1$obj
-
-repkf1<-recursiveobj1$report()
-
-recursiveB1<-list(
-  obj=recursiveobj1,
-  nchain=3,
-  iter=iteracs,
-  lowbd=c(0.1,-13.5,0.0,-3.0),
-  hibd=c(4.0,-9.,1.0,5.0)
-)
-
-
-posterior_recursive1<-posteriorsdf(recursiveB1)
-
-recrsdf1<-posterior_recursive1$posteriors
-
-a_rb1<-(recrsdf1$value[recrsdf1$parameters=="alphao"])
-beta_rb1<-exp(recrsdf1$value[recrsdf1$parameters=="logbeta"])
-Smax_rb1<-1/exp(recrsdf1$value[recrsdf1$parameters=="logbeta"])
-rho_rb1<-(recrsdf1$value[recrsdf1$parameters=="rho"])
-umsy_rb1<-.5*a_rb1-0.07*a_rb1^2
-
-
-soa1<-recrsdf1[grep("alpha",recrsdf1$parameters),]
-summary(soa1)
-soa1$umsy <- .5*soa1$value-0.07*soa1$value^2
-umsyposteriorsummary1 <- aggregate(soa1$umsy,list(soa1$parameters),function(x){quantile(x,probs=c(0.025,.5,.975))})
-umsyposteriorsummary1<-umsyposteriorsummary1[c(1,12,23,25:30,2:11,13:22,24),]
-
-
-
-
-rhodf1<-recrsdf1[recrsdf1$parameters=="rho",]
-rhodf1t<-rhodf1
-rhodf1t$value<-rbeta(nrow(rhodf1),1,1)
-rhodf1p<-rbind(rhodf1,rhodf1t)
-rhodf1p$distribution<-rep(c("posterior","prior"),each=nrow(rhodf1))
-rhodf1p$scn<-"uninformative 1, 1"
-
-
-
-#deriv_posteriors1<-data.frame(chains=rep(recrsdf1$chains[recrsdf1$parameters=="logbeta"],5),
-#                             parameters = rep(c("ao","b","Smax","rho","umsy"),each=length(a_rb1)),
-#                             value = c(a_rb1,beta_rb1,Smax_rb1,rho_rb1,umsy_rb1)
-#                             )
-#plot_posteriors(deriv_posteriors1,salvar=FALSE,DIR=figs_dir,nome="posterior_recursive_model_umsy.pdf")
-
-#Dr<-list(
-#  DIR=tex_dir,
-#  param_names=c("b","$S_{max}$","$\\rho$",paste("a",SR$BroodYear)),
-#  MLE=c(repkf1$beta,repkf1$Smax,repkf1$rho,repkf1$alpha),
-#  MCMC=cbind(beta_rb1,Smax_rb1,rho_rb1),
-#  caption = "Parameter estimates for recursive Bayes Ricker model.",
-#  digits=matrix(c(2,-2,2,2),ncol=6,nrow=length(SR$BroodYear)+2),
-#  other=rbind(posterior_recursive1$fit_summary$summary[5:34,4],posterior_recursive1$fit_summary$summary[5:34,6],posterior_recursive1$fit_summary$summary[5:34,8]),
-#  filename="recursive_tab_pr1.tex")
-#results_table(Dr) 
-
-#============================================================================================
-#============================================================================================
-#base case
-mydata<-list(obs_logR=log(SR$R),obs_S=SR$S_adj,prbeta1=4.0,prbeta2=4.0)
 
 
 recursive<-list(
@@ -259,17 +322,62 @@ recursive<-list(
   DIR="."
   )
 
-recursivebase <- runTMB(recursive,comps=TRUE)
-recursivebase$opt
 
-TMBAIC(recursivebase$opt) #80.54305
-2*4-2*-36.27152
+compile("Rickerkf_ratiovar.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
+dyn.load(dynlib("Rickerkf_ratiovar"))
+
+ 
+obj_timevar<-MakeADFun(mydata,parameters_recursive,random="alpha",DLL="Rickerkf_ratiovar")
+newtonOption(obj_timevar, smartsearch=FALSE)
+
+obj_timevar$fn()
+obj_timevar$gr()
+opt_timevar<-nlminb(obj_timevar$par,obj_timevar$fn,obj_timevar$gr)
+repkf<-obj_timevar$report()
+
+unique(allfits$model)
+
+TMBAIC(opt_timevar) 
+TMBAIC(opt)
+TMBAIC(opt_surv) 
 
 
-recursiveobj <- recursivebase$obj
-repkf<-recursiveobj$report()
 
-repkf<-recursiveobj$report()
+
+SRtimevar <-SR
+SRtimevar$model <- "time-varying productivity"
+SRtimevar$residuals <- repkf$residuals
+SRtimevar$epsilon <- NA
+
+rtv <- ggplot(SRtimevar )
+rtv <- rtv + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+rtv <- rtv + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+rtv <- rtv + geom_hline(yintercept = 0)
+rtv <- rtv + theme_bw(16)
+rtv <- rtv + scale_color_viridis_c(end = 0.8)
+rtv <- rtv + labs(title ="time-varying productivity", x = "Spawners", y = "Recruits") 
+rtv
+
+
+allfits<-rbind(SRsurv,SRtimevar,SRdiagauto)
+
+
+
+pp <- ggplot(allfits )
+pp <- pp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+pp <- pp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+pp <- pp + geom_hline(yintercept = 0)
+pp <- pp + theme_bw(16)
+pp <- pp + scale_color_viridis_c(end = 0.8)
+pp <- pp + facet_wrap(~model)
+pp 
+
+data.frame(model=c("survival to age 2 as a covariate", "time-varying productivity", "autocorrelation in Recruitment"),
+ AIC= c(TMBAIC(opt), TMBAIC(opt_surv), TMBAIC(opt_timevar) ))
+
+
+plot_grid(rp,rsp, rtv, labels = c('A', 'B','C'), label_size = 12,nrow=1)
+
 
 predR2<-matrix(NA,nrow=length(SR$S_adj),ncol=length(repkf$alpha))
 
@@ -557,6 +665,86 @@ summary(soa3)
 unique(soa3$parameters)
 #predicted recruitment
 ls()
+
+#============================================================================================
+
+mydata1<-list(obs_logR=log(SR$R),obs_S=SR$S_adj,prbeta1=1.0,prbeta2=1.0)
+
+recursive1<-list(
+  dat=mydata1,
+  params=parameters_recursive,
+  rndm="alpha",
+  dll="Rickerkf_ratiovar",
+  DIR="."
+  )
+
+
+recursive1<-runTMB(recursive1, comps=TRUE)
+recursive1$opt
+TMBAIC(recursive1$opt)
+recursiveobj1<-recursive1$obj
+
+repkf1<-recursiveobj1$report()
+
+recursiveB1<-list(
+  obj=recursiveobj1,
+  nchain=3,
+  iter=iteracs,
+  lowbd=c(0.1,-13.5,0.0,-3.0),
+  hibd=c(4.0,-9.,1.0,5.0)
+)
+
+
+posterior_recursive1<-posteriorsdf(recursiveB1)
+
+recrsdf1<-posterior_recursive1$posteriors
+
+a_rb1<-(recrsdf1$value[recrsdf1$parameters=="alphao"])
+beta_rb1<-exp(recrsdf1$value[recrsdf1$parameters=="logbeta"])
+Smax_rb1<-1/exp(recrsdf1$value[recrsdf1$parameters=="logbeta"])
+rho_rb1<-(recrsdf1$value[recrsdf1$parameters=="rho"])
+umsy_rb1<-.5*a_rb1-0.07*a_rb1^2
+
+
+soa1<-recrsdf1[grep("alpha",recrsdf1$parameters),]
+summary(soa1)
+soa1$umsy <- .5*soa1$value-0.07*soa1$value^2
+umsyposteriorsummary1 <- aggregate(soa1$umsy,list(soa1$parameters),function(x){quantile(x,probs=c(0.025,.5,.975))})
+umsyposteriorsummary1<-umsyposteriorsummary1[c(1,12,23,25:30,2:11,13:22,24),]
+
+
+
+
+rhodf1<-recrsdf1[recrsdf1$parameters=="rho",]
+rhodf1t<-rhodf1
+rhodf1t$value<-rbeta(nrow(rhodf1),1,1)
+rhodf1p<-rbind(rhodf1,rhodf1t)
+rhodf1p$distribution<-rep(c("posterior","prior"),each=nrow(rhodf1))
+rhodf1p$scn<-"uninformative 1, 1"
+
+
+
+#deriv_posteriors1<-data.frame(chains=rep(recrsdf1$chains[recrsdf1$parameters=="logbeta"],5),
+#                             parameters = rep(c("ao","b","Smax","rho","umsy"),each=length(a_rb1)),
+#                             value = c(a_rb1,beta_rb1,Smax_rb1,rho_rb1,umsy_rb1)
+#                             )
+#plot_posteriors(deriv_posteriors1,salvar=FALSE,DIR=figs_dir,nome="posterior_recursive_model_umsy.pdf")
+
+#Dr<-list(
+#  DIR=tex_dir,
+#  param_names=c("b","$S_{max}$","$\\rho$",paste("a",SR$BroodYear)),
+#  MLE=c(repkf1$beta,repkf1$Smax,repkf1$rho,repkf1$alpha),
+#  MCMC=cbind(beta_rb1,Smax_rb1,rho_rb1),
+#  caption = "Parameter estimates for recursive Bayes Ricker model.",
+#  digits=matrix(c(2,-2,2,2),ncol=6,nrow=length(SR$BroodYear)+2),
+#  other=rbind(posterior_recursive1$fit_summary$summary[5:34,4],posterior_recursive1$fit_summary$summary[5:34,6],posterior_recursive1$fit_summary$summary[5:34,8]),
+#  filename="recursive_tab_pr1.tex")
+#results_table(Dr) 
+
+#============================================================================================
+
+
+
 
 moltentmp<-melt(soa[,-c(1,2)])
 moltentmp$iterations<-paste(soa$iterations,soa$chains,sep=".")

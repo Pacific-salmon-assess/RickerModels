@@ -37,6 +37,12 @@ ricker_simple <- function(x,a,b,sde){
   return(y)
 }
 
+
+ricker_simple_biascorr <- function(x,a,b,sde){
+  y<-x*exp(a-b*x+(rnorm(length(x),0,sd=sde))-.5*(sde^2))
+  return(y)
+}
+
 k=6
 nsims<-200
 hr=.0
@@ -44,7 +50,7 @@ hr=.0
 simsR<-matrix(NA, ncol=length(SR$R)+3*k,nrow=nsims)
 simsS<-matrix(NA, ncol=length(SR$R)+3*k,nrow=nsims)
 
-simsS[,1:k]<-a_sim/b_sim
+simsS[,1:k]<-1/b_sim
 mat<-c(0.0,0.01,0.2,0.6,0.9,1)
 
 aest<-NULL
@@ -59,7 +65,7 @@ for(i in 1:nsims){
   for(y in (1+k):ncol(simsS)){
 
 
-    simsR[i,y]<-ricker_simple(simsS[i,y-k],a_sim,b_sim,sd_sim)
+    simsR[i,y]<-ricker_simple_biascorr(simsS[i,y-k],a_sim,b_sim,sd_sim)
     simsS[i,y]<-simsR[i,y]*(1-hr)
 
   }
@@ -80,9 +86,9 @@ for(i in 1:nsims){
 
   simpleobj<-runTMB(simpl)
 
-  sdest[i]<-simpleobj$report()$SigObs
-  aest[i]<-simpleobj$report()$alpha
-  best[i]<-simpleobj$report()$beta
+  sdest[i]<-simpleobj$obj$report()$SigObs
+  aest[i]<-simpleobj$obj$report()$alpha
+  best[i]<-simpleobj$obj$report()$beta
 
 }
 
