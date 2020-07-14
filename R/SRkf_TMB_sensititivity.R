@@ -216,7 +216,7 @@ p
 SRsurv <- read.csv("../data/Harrison_simples_survchi.csv")
 
 
-
+#stack spawners, recruitments, fecundity, time var prod, survival
 
 ep <- ggplot(SRsurv)
 ep <- ep + geom_line(aes(x=BroodYear,y=(Age2Surv)),size=1.2)
@@ -372,7 +372,7 @@ pp <- pp + scale_color_viridis_c(end = 0.8)
 pp <- pp + facet_wrap(~model)
 pp 
 
-data.frame(model=c("survival to age 2 as a covariate", "time-varying productivity", "autocorrelation in Recruitment"),
+data.frame(model=c( "autocorrelation in Recruitment","survival to age 2 as a covariate", "time-varying productivity"),
  AIC= c(TMBAIC(opt), TMBAIC(opt_surv), TMBAIC(opt_timevar) ))
 
 
