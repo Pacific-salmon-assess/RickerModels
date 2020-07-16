@@ -5,6 +5,13 @@ bool isNA(Type x){
   return R_IsNA(asDouble(x));
 }
 
+
+template <class Type>
+Type minus_one_to_one(Type x)
+{
+  return Type(2) * invlogit(x) - Type(1);
+}
+
  // dlnorm
 template<class Type>
 Type dlnorm(Type x, Type meanlog, Type sdlog, int give_log=0){
@@ -28,6 +35,8 @@ Type objective_function<Type>::operator() ()
   
   int timeSteps=obs_logR.size();
 
+  Type rhoo = minus_one_to_one(rho);
+
   //Type rho = exp(logrho);
   Type beta = exp(logbeta);
   Type SigObs = exp(logSigObs);
@@ -35,7 +44,7 @@ Type objective_function<Type>::operator() ()
   
   Type tau  = Type(1.0)/(SigObs*SigObs);
 
-  Type SigAR  = SigObs*sqrt(1-pow(rho,2));
+  Type SigAR  = SigObs*sqrt(1-pow(rhoo,2));
   
   vector<Type> pred_logR(timeSteps), logRS(timeSteps), residuals(timeSteps), epsilon(timeSteps);
 
@@ -59,7 +68,7 @@ Type objective_function<Type>::operator() ()
     if(!isNA(obs_logR(i))){
       logRS(i) = alpha - beta * obs_S(i) ;
       //pred_logR(i) = logRS(i) + log(obs_S(i)) + epsilon(i) ;
-      pred_logR(i) = logRS(i) + log(obs_S(i)) + epsilon(i-1) * rho ;
+      pred_logR(i) = logRS(i) + log(obs_S(i)) + epsilon(i-1) * rhoo ;
       residuals(i) = obs_logR(i) - pred_logR(i);
       epsilon(i) = residuals(i);//epsilon(i-1) * rho; //+ delta(i)* sqrt(1-pow(rho,2));
       
@@ -79,9 +88,10 @@ Type objective_function<Type>::operator() ()
   REPORT(alpha)
   //REPORT(delta)
   REPORT(tau)
-  REPORT(rho)
+  REPORT(rhoo)
   REPORT(beta)
   REPORT(SigObs)
+  REPORT(SigAR)
   REPORT(Smax)
   REPORT(umsy)
   REPORT(epsilon)

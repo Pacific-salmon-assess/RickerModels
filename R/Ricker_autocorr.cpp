@@ -34,7 +34,7 @@ Type objective_function<Type>::operator() ()
   
   int timeSteps=obs_logR.size();
 
-  //Type rhoo minus_one_to_one(rho);
+  Type rhoo = minus_one_to_one(rho);
 
   
   Type beta = exp(logbeta);
@@ -43,7 +43,7 @@ Type objective_function<Type>::operator() ()
   
   Type tau  = Type(1.0)/(SigObs*SigObs);
 
-  Type SigAR  = SigObs*sqrt(Type(1)-pow(rho,2));
+  Type SigAR  = SigObs*sqrt(Type(1.0)-pow(rhoo,2));
   
   vector<Type> pred_logR(timeSteps), logRS(timeSteps), residuals(timeSteps), epsilon(timeSteps);
 
@@ -58,18 +58,16 @@ Type objective_function<Type>::operator() ()
   residuals(0) = obs_logR(0) - pred_logR(0);
  
   ans+= -dnorm(delta(0), Type(0),SigObs,true);  
-  //ans+= -dnorm(obs_logR(0),pred_logR(0),SigObs,true);
-  ans+= -dnorm(residuals(0),epsilon(0),SigObs,true);  
-
+  ans+= -dnorm(obs_logR(0),pred_logR(0),SigObs,true);
+  
   for(int i=1;i<timeSteps;i++){
     if(!isNA(obs_logR(i))){
-      epsilon(i) = epsilon(i-1) * rho + delta(i)* sqrt(1-pow(rho,2));
+      epsilon(i) = epsilon(i-1) * rhoo + delta(i)* sqrt(1-pow(rhoo,2));
       logRS(i) = alpha - beta * obs_S(i) ;
-      pred_logR(i) = logRS(i) + log(obs_S(i)) + epsilon(i) ;
+      pred_logR(i) = logRS(i) + log(obs_S(i)) + epsilon(i)  ;
       residuals(i) = obs_logR(i) - pred_logR(i);
       
-      ans+=-dnorm(residuals(i),epsilon(i),SigAR,true);
-      //ans+=-dnorm(obs_logR(i),pred_logR(i),SigAR,true);
+      ans+=-dnorm(obs_logR(i),pred_logR(i),SigAR,true);
       ans+=-dnorm(delta(i),Type(0),SigObs,true);
       //
     }
@@ -85,8 +83,10 @@ Type objective_function<Type>::operator() ()
   REPORT(delta)
   REPORT(tau)
   REPORT(rho)
+  REPORT(rhoo)
   REPORT(beta)
   REPORT(SigObs)
+  REPORT(SigAR)
   REPORT(Smax)
   REPORT(umsy)
   REPORT(epsilon)
