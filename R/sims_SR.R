@@ -65,7 +65,7 @@ for(i in 1:nsims){
   for(y in (1+k):ncol(simsS)){
 
 
-    simsR[i,y]<-ricker_simple_biascorr(simsS[i,y-k],a_sim,b_sim,sd_sim)
+    simsR[i,y]<-ricker_simple(simsS[i,y-k],a_sim,b_sim,sd_sim)
     simsS[i,y]<-simsR[i,y]*(1-hr)
 
   }
