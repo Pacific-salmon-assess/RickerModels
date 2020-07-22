@@ -16,6 +16,9 @@ library(TMBhelper)
 library(cowplot)
 
 source("TMB_functions.R")
+
+#render Rmd
+rmarkdown::render("../Rmd/RPA2020.rmd")
 #read in simple data set
 SR <- read.csv("../data/Harrison_simples_Apr18.csv")
 
