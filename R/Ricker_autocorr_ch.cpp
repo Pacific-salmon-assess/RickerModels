@@ -67,15 +67,12 @@ Type objective_function<Type>::operator() ()
   for(int i=1;i<timeSteps;i++){
     if(!isNA(obs_logR(i))){
       logRS(i) = alpha - beta * obs_S(i) ;
-      //pred_logR(i) = logRS(i) + log(obs_S(i)) + epsilon(i) ;
       pred_logR(i) = logRS(i) + log(obs_S(i)) + epsilon(i-1) * rhoo ;
       residuals(i) = obs_logR(i) - pred_logR(i);
       epsilon(i) = residuals(i);//epsilon(i-1) * rho; //+ delta(i)* sqrt(1-pow(rho,2));
       
       ans+=-dnorm(obs_logR(i),pred_logR(i),SigAR,true);
-      //ans+=-dnorm(obs_logR(i),pred_logR(i),SigAR,true);
-      //ans+=-dnorm(delta(i),Type(0),SigObs,true);
-      //
+      
     }
   
   }

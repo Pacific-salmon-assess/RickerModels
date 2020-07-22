@@ -32,19 +32,11 @@ Type objective_function<Type>::operator() ()
   Type Smax  = Type(1.0)/beta;
   
   Type tau     = Type(1.0)/(SigObs*SigObs);
-
-
   
-  vector<Type> pred_logR(timeSteps), logRS(timeSteps), residuals(timeSteps);
-
- 
-
-  //priors on precision and variance ratio
-  //Type ans= -dbeta(rho,Type(3.0),Type(3.0),true);  
-  //Type ans= -dnorm(logSigObs,Type(0.0),Type(5.0),true);   
-    Type ans= Type(0);
+  vector<Type> pred_logR(timeSteps), logRS(timeSteps), residuals(timeSteps); 
   
-
+  Type ans= Type(0);
+  
 
   for(int i=0;i<timeSteps;i++){
     if(!isNA(obs_logR(i))){
