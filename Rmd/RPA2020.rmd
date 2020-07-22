@@ -1,0 +1,329 @@
+---
+title: "Ricker models for harrison data"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r load, include=FALSE}
+library(ggplot2)
+library(TMB)
+library(bayesplot)
+library(tmbstan)
+library(reshape)
+library(xtable)
+library(TMBhelper)
+library(cowplot)
+
+
+source("../R/TMB_functions.R")
+#read in simple data set
+SR <- read.csv("../data/Harrison_simples_Apr18.csv")
+iteracs <- 100000
+
+
+```
+
+
+# Ricker simple
+
+Simple Ricker model of the form:
+$R = a*S*exp(-b*S) *exp(\epsilon)$
+
+$\epsilon \sim N(0,\sigma)$
+
+```{r, echo=FALSE, warning=FALSE }
+
+
+
+# LM version
+srm <- lm(log(SR$R/SR$S_adj)~ SR$S_adj)
+a_srm <- srm$coefficients[1]
+b_srm <- -srm$coefficients[2]
+alpha <- exp(a_srm)
+
+#par(mfrow=c(2,2))
+#plot(srm)
+
+##Ricker MSY funtions 
+u_msy <- .5*a_srm-0.07*a_srm^2
+S_msy <- a_srm/b_srm * (0.5 -0.07 * a_srm);
+#
+predR1 <- SR$S_adj*exp(a_srm-b_srm*SR$S_adj)
+#
+mydata<-list(obs_logR=log(SR$R),obs_S=SR$S_adj)
+parameters_simple <- list(
+  alpha=(a_srm),
+  logbeta = log(b_srm),
+  logSigObs= log(.4)  )
+
+simpl<-list(
+  dat=mydata,
+  params=parameters_simple,
+  rndm=NULL,
+  dll="Ricker_simple",
+  DIR="." )
+
+compile("../R/Ricker_simple.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="")
+dyn.load(dynlib("../R/Ricker_simple"))
+
+
+obj<-MakeADFun(mydata,parameters_simple,random=NULL,DLL="Ricker_simple")
+newtonOption(obj, smartsearch=FALSE)
+  
+opt<-nlminb(obj$par,obj$fn,obj$gr)
+
+simplepar<-data.frame(parameters=c("a","b","$\\sigma$"),
+	values=c(exp(obj$report()$alpha),obj$report()$beta,obj$report()$SigObs))
+
+knitr::kable(simplepar)
+
+#sdreport(obj)
+#
+nparsimple <- 3 
+simpleRickerAIC <- 2*nparsimple-2*- opt$objective
+simpleRickerAIC
+#
+##diagnosticts
+#qqnorm(obj$report()$residuals)
+#abline(0,1)
+#
+SRdiagsimple <- SR
+SRdiagsimple$residuals <- obj$report()$residuals
+SRdiagsimple$model <- "Simple Ricker"
+
+#rp <- ggplot(SRdiagsimple)
+#rp <- rp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+#rp <- rp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+#rp <- rp + geom_hline(yintercept = 0)
+#rp <- rp + theme_bw(16)
+#rp <- rp + scale_color_viridis_c(end = 0.8)
+#rp
+#
+##MCMC
+#simpleB<-list(
+#  obj=obj,
+#  nchain=3,
+#  iter=iteracs,
+#  lowbd=c(0.1,-13.5,-6.0),
+#  hibd=c(4.0,-8.5,5.0)
+#)
+#
+#posterior_simple <- posteriorsdf(simpleB)
+#names(posterior_simple)
+##plots
+##plot_posteriors(posterior_simple$posteriors)
+##posteriors of derived quantities -- the interesting ones
+#simpdf <- posterior_simple$posteriors
+#
+#
+#a<-(simpdf$value[simpdf$parameters=="alpha"])
+#alpha<-exp(simpdf$value[simpdf$parameters=="alpha"])
+#beta<-exp(simpdf$value[simpdf$parameters=="logbeta"])
+#Smax<-1/exp(simpdf$value[simpdf$parameters=="logbeta"])
+#sig<-exp(simpdf$value[simpdf$parameters=="logSigObs"])
+#umsy_simple<-.5*a-0.07*a^2
+#
+#deriv_posteriors<-data.frame(chains=rep(simpdf$chains[simpdf$parameters=="logbeta"],4),
+#                             parameters = rep(c("a","b","S[max]","sigma"),each=length(a)),
+#                             value = c(a,beta,Smax,sig)
+#                             )
+#
+#pm <- ggplot(deriv_posteriors)
+#pm <- pm + geom_density(aes(x=value, color=chains), size=1.2)
+#pm <- pm + facet_wrap(~parameters, scales="free",
+#  labeller = label_parsed)
+#pm <- pm + theme_bw(16)+labs(colour = "Prior", x="Value", y="Density")
+#pm <- pm + scale_color_viridis_d(end = 0.8,option = "A")
+#
+#pm
+
+```
+# Ricker with autocorrelation
+
+ Ricker model with autocorrelation in residuals of the form:
+$R_t = a*S_t*exp(-b*S_t) *exp(\epsilon_t +\epsilon_{t-1} *\rho)$
+
+$\epsilon \sim N(0,\sigma_{AR})$
+
+$\sigma_{AR} = \sigma * sqrt(1-\rho^2)$
+
+```{r, echo=FALSE, warning=FALSE }
+
+
+mydataar<-list(obs_logR=log(SR$R),obs_S=SR$S_adj)
+#
+parameters_autocorr <- list(
+  alpha=(a_srm),
+  logbeta = log(b_srm),
+  logSigObs= log(.4), 
+  rho=0.3)
+#
+#
+#
+compile("../R/Ricker_autocorr_ch.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
+dyn.load(dynlib("../R/Ricker_autocorr_ch"))
+#
+objar<-MakeADFun(mydataar,parameters_autocorr,random=NULL,DLL="Ricker_autocorr_ch")
+  newtonOption(objar, smartsearch=FALSE)
+#  
+optar<-nlminb(objar$par,objar$fn,objar$gr)
+#
+nparar <- 4
+#objar$report()
+#TMBAIC(optar) 
+autoRickerAIC <- 2*nparar-2*-opt$objective
+
+ARpar<-data.frame(parameters=c("a","b","$\\sigma_{AR}$"),
+	values=c(exp(objar$report()$alpha),objar$report()$beta,objar$report()$SigAR))
+
+knitr::kable(ARpar)
+#
+#
+##restab <- data.frame(Parameter=c("$b$","$S_{max}$","\\alpha","$\\rho$",paste("$\\epsilon_{",SR$BroodYear,"}$")),
+##          MLE=c(obj$report()$beta,obj$report()$Smax,obj$report()$alpha,obj$report()$rho,obj$report()$epsilon))
+#
+##xtable(restab, digits=4,caption = "Ricker recruitment autocorrelaton MLE estimates")
+#
+SRdiagauto<-SR
+SRdiagauto$residuals <- objar$report()$residuals
+SRdiagauto$model <- "autocorrelation in Recruitment"
+#
+#
+#rpar <- ggplot(SRdiagauto)
+#rpar <- rpar + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+#rpar <- rpar + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+#rpar <- rpar + geom_hline(yintercept = 0)
+#rpar <- rpar + theme_bw(16)
+#rpar <- rpar + scale_color_viridis_c(end = 0.8)
+#rpar <- rpar + labs(title="autocorrelation in Recruitment", x = "Spawners", y = "Recruits") 
+#rpar
+#
+#
+#SRres<-rbind(SRdiagsimple,SRdiagauto)
+#
+#
+#rpall <- ggplot(SRres)
+#rpall <- rall + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+#rpall <- rall + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+#rpall <- rall + geom_hline(yintercept = 0)
+#rpall <- rall + theme_bw(16)
+#
+#rpall <- rall + labs(title="autocorrelation in Recruitment", x = "Spawners", y = "Recruits") 
+#rpall <- rall + facet_wrap(~ model)
+#rpall
+
+```
+
+# Ricker with time-varying productivity
+
+
+Ricker model with time-varying productivity
+
+$R_t = a_t*S_t*exp(-b*S_t) *exp(\epsilon_t )$
+
+$a_t = a_{t-1} + v_t$
+
+$\epsilon \sim N(0,\sigma)$
+
+$v \sim N(0,\sigma_{a})$
+
+$\sigma_{tot}= sqrt(\sigma^2 + \sigma_{a}^2)$
+
+```{r echo=FALSE, warning=FALSE,message=FALSE }
+
+
+mydatatimevar<-list(obs_logR=log(SR$R),obs_S=SR$S_adj,prbeta1=3,prbeta2=3)
+#
+#
+parameters_recursive <- list(
+  alphao=a_srm,
+  logbeta = log(b_srm),
+  rho=.2,
+  #logtheta = log(.8),
+  logvarphi= 0.1,
+  alpha=rep(0.9,length(SR$R))
+  )
+
+
+recursive<-list(
+  dat=mydatatimevar,
+  params=parameters_recursive,
+  rndm="alpha",
+  dll="Rickerkf_ratiovar",
+  DIR="."
+  )
+
+
+compile("../R/Rickerkf_ratiovar.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
+dyn.load(dynlib("../R/Rickerkf_ratiovar"))
+
+ 
+obj_timevar<-MakeADFun(mydatatimevar,parameters_recursive,random="alpha",DLL="Rickerkf_ratiovar")
+newtonOption(obj_timevar, smartsearch=FALSE)
+
+opt_timevar<-nlminb(obj_timevar$par,obj_timevar$fn,obj_timevar$gr)
+
+repkf<-obj_timevar$report()
+
+meanct<-(length(obj_timevar$report()$alpha)-3):length(obj_timevar$report()$alpha)
+
+timevar_par<-data.frame(parameters=c("a","b","$\\sigma_{tot}$"),
+	values=c(exp(mean(obj_timevar$report()$alpha[meanct])),obj_timevar$report()$beta,
+		sqrt(obj_timevar$report()$sig^2+obj_timevar$report()$tau^2)))
+
+knitr::kable(timevar_par)
+
+
+SRtimevar <-SR
+SRtimevar$model <- "time-varying productivity"
+SRtimevar$residuals <- repkf$residuals
+#
+```
+
+
+# comparison
+
+```{r, resid_fig, echo=FALSE, fig.height = 5, fig.width = 10, fig.cap = "figures"}
+
+allfits<-rbind(SRdiagsimple,SRtimevar,SRdiagauto)
+#
+#
+#
+pp <- ggplot(allfits )
+pp <- pp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+pp <- pp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+pp <- pp + geom_hline(yintercept = 0)
+pp <- pp + theme_bw(16)
+pp <- pp + scale_color_viridis_c(end = 0.8)
+pp <- pp + facet_wrap(~model)
+pp 
+```
+
+```{r, echo=FALSE, warning=FALSE }
+
+
+#
+#
+#
+#
+#
+#rtv <- ggplot(SRtimevar )
+#rtv <- rtv + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+#rtv <- rtv + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+#rtv <- rtv + geom_hline(yintercept = 0)
+#rtv <- rtv + theme_bw(16)
+#rtv <- rtv + scale_color_viridis_c(end = 0.8)
+#rtv <- rtv + labs(title ="time-varying productivity", x = "Spawners", y = "Recruits") 
+#rtv
+#
+#
+#
+aics<-data.frame(model=c("simple ricker", "autocorrelation in Recruitment", "time-varying productivity"),
+ AIC= c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar) ),
+ deltaAIC= c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar) )-min(c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar) )))
+knitr::kable(aics)
+
+
+```
