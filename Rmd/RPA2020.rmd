@@ -33,7 +33,7 @@ $R = a*S*exp(-b*S) *exp(\epsilon)$
 
 $\epsilon \sim N(0,\sigma)$
 
-```{r, echo=FALSE, warning=FALSE }
+```{r, echo=FALSE, warning=FALSE,message=FALSE }
 
 
 
@@ -93,43 +93,43 @@ SRdiagsimple <- SR
 SRdiagsimple$residuals <- obj$report()$residuals
 SRdiagsimple$model <- "Simple Ricker"
 
-#rp <- ggplot(SRdiagsimple)
-#rp <- rp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
-#rp <- rp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
-#rp <- rp + geom_hline(yintercept = 0)
-#rp <- rp + theme_bw(16)
-#rp <- rp + scale_color_viridis_c(end = 0.8)
-#rp
-#
+
 ##MCMC
-#simpleB<-list(
-#  obj=obj,
-#  nchain=3,
-#  iter=iteracs,
-#  lowbd=c(0.1,-13.5,-6.0),
-#  hibd=c(4.0,-8.5,5.0)
-#)
-#
-#posterior_simple <- posteriorsdf(simpleB)
-#names(posterior_simple)
-##plots
-##plot_posteriors(posterior_simple$posteriors)
-##posteriors of derived quantities -- the interesting ones
-#simpdf <- posterior_simple$posteriors
-#
-#
-#a<-(simpdf$value[simpdf$parameters=="alpha"])
-#alpha<-exp(simpdf$value[simpdf$parameters=="alpha"])
-#beta<-exp(simpdf$value[simpdf$parameters=="logbeta"])
-#Smax<-1/exp(simpdf$value[simpdf$parameters=="logbeta"])
-#sig<-exp(simpdf$value[simpdf$parameters=="logSigObs"])
-#umsy_simple<-.5*a-0.07*a^2
-#
-#deriv_posteriors<-data.frame(chains=rep(simpdf$chains[simpdf$parameters=="logbeta"],4),
-#                             parameters = rep(c("a","b","S[max]","sigma"),each=length(a)),
-#                             value = c(a,beta,Smax,sig)
-#                             )
-#
+simpleB<-list(
+  obj=obj,
+  nchain=3,
+  iter=iteracs,
+  lowbd=c(0.1,-13.5,-6.0),
+  hibd=c(4.0,-8.5,5.0)
+)
+
+posterior_simple <- posteriorsdf(simpleB)
+
+#plots
+#plot_posteriors(posterior_simple$posteriors)
+#posteriors of derived quantities -- the interesting ones
+simpdf <- posterior_simple$posteriors
+
+
+a<-(simpdf$value[simpdf$parameters=="alpha"])
+alpha<-exp(simpdf$value[simpdf$parameters=="alpha"])
+beta<-exp(simpdf$value[simpdf$parameters=="logbeta"])
+Smax<-1/exp(simpdf$value[simpdf$parameters=="logbeta"])
+sig<-exp(simpdf$value[simpdf$parameters=="logSigObs"])
+umsy_simple<-.5*a-0.07*a^2
+
+
+simplepar<-data.frame(parameters=c("a","b","$\\sigma$"),
+	MLE=c(exp(obj$report()$alpha),obj$report()$beta,obj$report()$SigObs),
+	median=c(median(alpha),median(beta),median(sig)))
+
+knitr::kable(simplepar)
+
+deriv_posteriors<-data.frame(chains=rep(simpdf$chains[simpdf$parameters=="logbeta"],4),
+                             parameters = rep(c("a","b","S[max]","sigma"),each=length(a)),
+                             value = c(a,beta,Smax,sig)
+                             )
+
 #pm <- ggplot(deriv_posteriors)
 #pm <- pm + geom_density(aes(x=value, color=chains), size=1.2)
 #pm <- pm + facet_wrap(~parameters, scales="free",
@@ -140,6 +140,7 @@ SRdiagsimple$model <- "Simple Ricker"
 #pm
 
 ```
+
 # Ricker with autocorrelation
 
  Ricker model with autocorrelation in residuals of the form:
@@ -173,13 +174,8 @@ optar<-nlminb(objar$par,objar$fn,objar$gr)
 nparar <- 4
 #objar$report()
 #TMBAIC(optar) 
-autoRickerAIC <- 2*nparar-2*-opt$objective
+autoRickerAIC <- 2*nparar-2*-optar$objective
 
-ARpar<-data.frame(parameters=c("a","b","$\\sigma_{AR}$"),
-	values=c(exp(objar$report()$alpha),objar$report()$beta,objar$report()$SigAR))
-
-knitr::kable(ARpar)
-#
 #
 ##restab <- data.frame(Parameter=c("$b$","$S_{max}$","\\alpha","$\\rho$",paste("$\\epsilon_{",SR$BroodYear,"}$")),
 ##          MLE=c(obj$report()$beta,obj$report()$Smax,obj$report()$alpha,obj$report()$rho,obj$report()$epsilon))
@@ -189,7 +185,47 @@ knitr::kable(ARpar)
 SRdiagauto<-SR
 SRdiagauto$residuals <- objar$report()$residuals
 SRdiagauto$model <- "autocorrelation in Recruitment"
+
+
+
+##MCMC
+autoB<-list(
+  obj=objar,
+  nchain=3,
+  iter=iteracs,
+  lowbd=c(0.1,-13.5,-6.0,-1),
+  hibd=c(4.0,-8.5,5.0,1)
+)
+
+posterior_ar <- posteriorsdf(autoB)
+
+#plots
+#plot_posteriors(posterior_simple$posteriors)
+#posteriors of derived quantities -- the interesting ones
+ardf <- posterior_ar$posteriors
+
+
+a_ar<-(ardf$value[ardf$parameters=="alpha"])
+alpha_ar<-exp(ardf$value[ardf$parameters=="alpha"])
+beta_ar<-exp(ardf$value[ardf$parameters=="logbeta"])
+Smax_ar<-1/exp(ardf$value[ardf$parameters=="logbeta"])
+sig_ar<-exp(ardf$value[ardf$parameters=="logSigObs"])
+rho_ar<-ardf$value[ardf$parameters=="rho"]
+umsy_ar<-.5*a_ar-0.07*a_ar^2
+
+
+#ARpar<-data.frame(
+#	values=c(exp(objar$report()$alpha),objar$report()$beta,objar$report()$SigAR))
+
+#knitr::kable(ARpar)
 #
+
+arpar<-data.frame(parameters=c("a","b","$\\sigma_{AR}$","$\\rho$"),
+	MLE=c(exp(objar$report()$alpha),objar$report()$beta,objar$report()$SigAR,objar$report()$rhoo),
+	median=c(median(alpha_ar),median(beta_ar),median(sig_ar),median(rho_ar)))
+
+knitr::kable(arpar)
+
 #
 #rpar <- ggplot(SRdiagauto)
 #rpar <- rpar + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
@@ -269,17 +305,46 @@ repkf<-obj_timevar$report()
 
 meanct<-(length(obj_timevar$report()$alpha)-3):length(obj_timevar$report()$alpha)
 
-timevar_par<-data.frame(parameters=c("a","b","$\\sigma_{tot}$"),
-	values=c(exp(mean(obj_timevar$report()$alpha[meanct])),obj_timevar$report()$beta,
-		sqrt(obj_timevar$report()$sig^2+obj_timevar$report()$tau^2)))
-
-knitr::kable(timevar_par)
 
 
 SRtimevar <-SR
 SRtimevar$model <- "time-varying productivity"
 SRtimevar$residuals <- repkf$residuals
 #
+
+
+recursiveB<-list(
+  obj=obj_timevar,
+  nchain=3,
+  iter=iteracs,
+  lowbd=c(0.1,-13.5,0.0,-3.0),
+  hibd=c(4.0,-9.,1.0,5.0)
+)
+
+posterior_recursive<-posteriorsdf(recursiveB)
+recrsdf<-posterior_recursive$posteriors
+
+a_rb<-(recrsdf$value[recrsdf$parameters=="alphao"])
+beta_rb<-exp(recrsdf$value[recrsdf$parameters=="logbeta"])
+Smax_rb<-1/exp(recrsdf$value[recrsdf$parameters=="logbeta"])
+rho_rb<-(recrsdf$value[recrsdf$parameters=="rho"])
+umsy_rb<-.5*a_rb-0.07*a_rb^2
+
+soa <- recrsdf[grep("alpha",recrsdf$parameters),]
+soa$umsy=.5*soa$value-0.07*soa$value^2
+
+umsyposteriorsummary<-aggregate(soa$umsy,list(soa$parameters),function(x){quantile(x,probs=c(0.025,.5,.975))})
+umsyposteriorsummary<-umsyposteriorsummary[c(1,12,23,25:30,2:11,13:22,24),]
+
+
+
+timevar_par<-data.frame(parameters=c("a","b","$\\sigma_{tot}$"),
+	MLE=c(exp(mean(obj_timevar$report()$alpha[meanct])),obj_timevar$report()$beta,
+		sqrt(obj_timevar$report()$sig^2+obj_timevar$report()$tau^2)),
+	median=c(exp(mean(umsyposteriorsummary$x[27:30,2])),median(beta_ar), NA))
+
+knitr::kable(timevar_par)
+
 ```
 
 
