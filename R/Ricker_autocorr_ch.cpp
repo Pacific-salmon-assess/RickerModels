@@ -24,7 +24,7 @@ Type dlnorm(Type x, Type meanlog, Type sdlog, int give_log=0){
 template<class Type>
 Type objective_function<Type>::operator() ()
 {
-  DATA_VECTOR(obs_logR);   // observed log recruitment
+  DATA_VECTOR(obs_R);   // observed log recruitment
   DATA_VECTOR(obs_S);    // observed  Spawner
   
   PARAMETER(alpha);
@@ -33,7 +33,7 @@ Type objective_function<Type>::operator() ()
   PARAMETER(rho);
   //PARAMETER_VECTOR(delta);
   
-  int timeSteps=obs_logR.size();
+  int timeSteps=obs_R.size();
 
   Type rhoo = minus_one_to_one(rho);
 
@@ -46,7 +46,7 @@ Type objective_function<Type>::operator() ()
 
   Type SigAR  = SigObs*sqrt(1-pow(rhoo,2));
   
-  vector<Type> pred_logR(timeSteps), logRS(timeSteps), residuals(timeSteps), epsilon(timeSteps);
+  vector<Type> pred_logRS(timeSteps), obs_logRS(timeSteps), residuals(timeSteps), epsilon(timeSteps);
 
  
 
@@ -55,23 +55,23 @@ Type objective_function<Type>::operator() ()
   //Type ans= -dnorm(logSigObs,Type(0.0),Type(5.0),true);   
   Type ans = Type(0);
 
- 
-  logRS(0) = alpha - beta * obs_S(0) ;
-  pred_logR(0) = logRS(0) + log(obs_S(0)) ; 
-  residuals(0) = obs_logR(0) - pred_logR(0);
-  epsilon(0) =  residuals(0);//delta(0);
+  obs_logRS(0) = log(obs_R(0)/obs_S(0));
+  pred_logRS(0) = alpha - beta * obs_S(0) ;
+  residuals(0) = obs_logRS(0) - pred_logRS(0);
+  epsilon(0) =  residuals(0);
   
-  //ans+= -dnorm(delta(0), Type(0),SigObs,true);  
-  ans+= -dnorm(obs_logR(0),pred_logR(0),SigObs,true);
+  
+  ans+= -dnorm(obs_logRS(0),pred_logRS(0),SigObs,true);
 
   for(int i=1;i<timeSteps;i++){
-    if(!isNA(obs_logR(i))){
-      logRS(i) = alpha - beta * obs_S(i) ;
-      pred_logR(i) = logRS(i) + log(obs_S(i)) + epsilon(i-1) * rhoo ;
-      residuals(i) = obs_logR(i) - pred_logR(i);
+    if(!isNA(obs_R(i))){
+      obs_logRS(i) = log(obs_R(i)/obs_S(i));
+      pred_logRS(i) = alpha - beta * obs_S(i) + epsilon(i-1) * rhoo ;
+     // pred_logR(i) = logRS(i) + log(obs_S(i)) + epsilon(i-1) * rhoo ;
+      residuals(i) = obs_logRS(i) - pred_logRS(i);
       epsilon(i) = residuals(i);//epsilon(i-1) * rho; //+ delta(i)* sqrt(1-pow(rho,2));
       
-      ans+=-dnorm(obs_logR(i),pred_logR(i),SigAR,true);
+      ans+=-dnorm(obs_logRS(i),pred_logRS(i),SigAR,true);
       
     }
   
@@ -80,7 +80,7 @@ Type objective_function<Type>::operator() ()
   Type umsy     = Type(.5) * alpha - Type(0.07) * (alpha * alpha);
   Type Smsy     = alpha/beta * (Type(0.5) -Type(0.07) * alpha);  
 
-  REPORT(pred_logR)
+  REPORT(pred_logRS)
   REPORT(residuals)
   REPORT(alpha)
   //REPORT(delta)

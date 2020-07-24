@@ -17,7 +17,7 @@ Type dlnorm(Type x, Type meanlog, Type sdlog, int give_log=0){
 template<class Type>
 Type objective_function<Type>::operator() ()
 {
-  DATA_VECTOR(obs_logR);   // observed log recruitment
+  DATA_VECTOR(obs_R);   // observed log recruitment
   DATA_VECTOR(obs_S);    // observed  Spawner
   
   PARAMETER(alpha);
@@ -25,7 +25,7 @@ Type objective_function<Type>::operator() ()
   //PARAMETER(rho);
   PARAMETER(logSigObs);
   
-  int timeSteps=obs_logR.size();
+  int timeSteps=obs_R.size();
 
   Type beta = exp(logbeta);
   Type SigObs = exp(logSigObs);
@@ -33,23 +33,23 @@ Type objective_function<Type>::operator() ()
   
   Type tau     = Type(1.0)/(SigObs*SigObs);
   
-  vector<Type> pred_logR(timeSteps), logRS(timeSteps), residuals(timeSteps); 
+  vector<Type> pred_logRS(timeSteps), obs_logRS(timeSteps), residuals(timeSteps); 
   
   Type ans= Type(0);
   
 
   for(int i=0;i<timeSteps;i++){
-    if(!isNA(obs_logR(i))){
-      logRS(i) = alpha - beta * obs_S(i) ;
-      pred_logR(i) = logRS(i) + log(obs_S(i)); 
-      residuals(i) = obs_logR(i) - pred_logR(i);
-      ans+=-dnorm(obs_logR(i),pred_logR(i),SigObs,true);
+    if(!isNA(obs_R(i))){
+      obs_logRS(i) = log(obs_R(i)/obs_S(i)) ;
+      pred_logRS(i) = alpha - beta * obs_S(i) ; 
+      residuals(i) = obs_logRS(i) - pred_logRS(i);
+      ans+=-dnorm(obs_logRS(i),pred_logRS(i),SigObs,true);
     }
   
   }
   Type umsy     = Type(.5) * alpha - Type(0.07) * (alpha * alpha);
 
-  REPORT(pred_logR)
+  REPORT(pred_logRS)
   REPORT(residuals)
   REPORT(alpha)
   REPORT(tau)

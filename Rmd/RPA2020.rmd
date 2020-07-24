@@ -52,7 +52,7 @@ S_msy <- a_srm/b_srm * (0.5 -0.07 * a_srm);
 #
 predR1 <- SR$S_adj*exp(a_srm-b_srm*SR$S_adj)
 #
-mydata<-list(obs_logR=log(SR$R),obs_S=SR$S_adj)
+mydata<-list(obs_R=(SR$R),obs_S=SR$S_adj)
 parameters_simple <- list(
   alpha=(a_srm),
   logbeta = log(b_srm),
@@ -92,7 +92,7 @@ simpleRickerAIC
 SRdiagsimple <- SR
 SRdiagsimple$residuals <- obj$report()$residuals
 SRdiagsimple$model <- "Simple Ricker"
-
+SRdiagsimple$alpha <- exp(obj$report()$alpha)
 
 ##MCMC
 simpleB<-list(
@@ -153,16 +153,14 @@ $\sigma_{AR} = \sigma * sqrt(1-\rho^2)$
 ```{r, echo=FALSE, warning=FALSE }
 
 
-mydataar<-list(obs_logR=log(SR$R),obs_S=SR$S_adj)
+mydataar<-list(obs_R=(SR$R),obs_S=SR$S_adj)
 #
 parameters_autocorr <- list(
   alpha=(a_srm),
   logbeta = log(b_srm),
   logSigObs= log(.4), 
   rho=0.3)
-#
-#
-#
+
 compile("../R/Ricker_autocorr_ch.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
 dyn.load(dynlib("../R/Ricker_autocorr_ch"))
 #
@@ -170,7 +168,7 @@ objar<-MakeADFun(mydataar,parameters_autocorr,random=NULL,DLL="Ricker_autocorr_c
   newtonOption(objar, smartsearch=FALSE)
 #  
 optar<-nlminb(objar$par,objar$fn,objar$gr)
-#
+
 nparar <- 4
 #objar$report()
 #TMBAIC(optar) 
@@ -185,7 +183,7 @@ autoRickerAIC <- 2*nparar-2*-optar$objective
 SRdiagauto<-SR
 SRdiagauto$residuals <- objar$report()$residuals
 SRdiagauto$model <- "autocorrelation in Recruitment"
-
+SRdiagauto$alpha <- exp(objar$report()$alpha)
 
 
 ##MCMC
@@ -270,7 +268,7 @@ $\sigma_{tot}= sqrt(\sigma^2 + \sigma_{a}^2)$
 ```{r echo=FALSE, warning=FALSE,message=FALSE }
 
 
-mydatatimevar<-list(obs_logR=log(SR$R),obs_S=SR$S_adj,prbeta1=3,prbeta2=3)
+mydatatimevar<-list(obs_R=(SR$R),obs_S=SR$S_adj,prbeta1=3,prbeta2=3)
 #
 #
 parameters_recursive <- list(
@@ -310,7 +308,7 @@ meanct<-(length(obj_timevar$report()$alpha)-3):length(obj_timevar$report()$alpha
 SRtimevar <-SR
 SRtimevar$model <- "time-varying productivity"
 SRtimevar$residuals <- repkf$residuals
-#
+SRtimevar$alpha <- exp(repkf$alpha)
 
 
 recursiveB<-list(
@@ -347,15 +345,168 @@ knitr::kable(timevar_par)
 
 ```
 
+# Ricker model with survival as covariate
+
+
+In this model we use survival as part of the model. In this version, the classic productivity parameter is replaced by $a*surv_t$ 
+
+$R_t = a*surv_t*S_t*exp(-b*S_t) *exp(\epsilon)$
+
+
+$\epsilon \sim N(0,\sigma)$
+
+```{r echo=FALSE, warning=FALSE,message=FALSE }
+
+SRsurv <- read.csv("../data/Harrison_simples_survchi.csv")
+
+
+#stack spawners, recruitments, fecundity, time var prod, survival
+
+ep <- ggplot(SRsurv)
+ep <- ep + geom_line(aes(x=BroodYear,y=(Age2Surv)),size=1.2)
+ep <- ep + geom_point(aes(x=BroodYear,y=(Age2Surv), col=(Age2Surv)),stroke=3)
+ep <- ep + geom_hline(yintercept = mean((SRsurv$Age2Surv),na.rm=T))
+ep <- ep + theme_bw(16)
+ep <- ep + scale_color_viridis_c(end = 0.8)
+ep
+
+
+ 
+mydata_surv<-list(obs_R=(SRsurv$R[!is.na(SRsurv$Age2Surv)]),obs_S=SRsurv$S_adj[!is.na(SRsurv$Age2Surv)],
+  obs_survival=SRsurv$Age2Surv[!is.na(SRsurv$Age2Surv)])
+  
+parameters_surv <- list(
+  alpha=0.91298,
+  logbeta = log(b_srm),
+  logSigObs= 0
+  )
+
+
+compile("../R/Ricker_survival.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
+dyn.load(dynlib("../R/Ricker_survival"))
+
+ 
+obj_surv<-MakeADFun(mydata_surv,parameters_surv,random=NULL,DLL="Ricker_survival")
+newtonOption(obj_surv, smartsearch=FALSE)
+
+#newtonOption(smartsearch=FALSE)
+
+opt_surv<-nlminb(obj_surv$par,obj_surv$fn,obj_surv$gr)
+rep_surv<-obj_surv$report()
+
+TMBAIC(opt_surv)
+
+
+SRsurv$residuals <- obj_surv$report()$residuals
+SRsurv$model <- "survival to age 2 as a covariate"
+
+
+rsp <- ggplot(SRsurv )
+rsp <- rsp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+rsp <- rsp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+rsp <- rsp + geom_hline(yintercept = 0)
+rsp <- rsp + theme_bw(16)
+rsp <- rsp + scale_color_viridis_c(end = 0.8)
+rsp <- rsp + labs(title ="survival to age 2 as a covariate", x = "Spawners", y = "Recruits") 
+rsp
+
+
+
+```
+
+# Ricker model with survival and fecundity as covariates
+
+TODO =). probably need to centralize the variables.
+
+```{r echo=FALSE, warning=FALSE,message=FALSE }
+
+survzscore <- (SRsurv$Age2Surv-mean(SRsurv$Age2Surv))/sd(SRsurv$Age2Surv)
+feczscore <- (SRsurv$fecundity-mean(SRsurv$fecundity))/sd(SRsurv$fecundity )
+
+sr_surv <- lm(log(SR$R/SR$S_adj)~ (survzscore)+(feczscore) +SR$S_adj)
+
+#stack spawners, recruitments, fecundity, time var prod, survival
+
+psz <- ggplot(SRsurv)
+psz <- psz + geom_line(aes(x=BroodYear,y=survzscore),size=1.2)
+psz <- psz + geom_point(aes(x=BroodYear,y=survzscore, col=survzscore),stroke=3)
+psz <- psz + geom_hline(yintercept = 0,na.rm=T)
+psz <- psz + theme_bw(16)
+psz <- psz + scale_color_viridis_c(end = 0.8)
+
+
+pfz <- ggplot(SRsurv)
+pfz <- pfz + geom_line(aes(x=BroodYear,y=feczscore),size=1.2)
+pfz <- pfz + geom_point(aes(x=BroodYear,y=feczscore, col=feczscore),stroke=3)
+pfz <- pfz + geom_hline(yintercept = 0,na.rm=T)
+pfz <- pfz + theme_bw(16)
+pfz <- pfz + scale_color_viridis_c(end = 0.8)
+ 
+plot_grid(psz,pfz)
+
+ 
+mydata_surv_fec<-list(obs_R=(SRsurv$R[!is.na(SRsurv$Age2Surv)]),obs_S=SRsurv$S_adj[!is.na(SRsurv$Age2Surv)],
+  obs_survival=survzscore[!is.na(SRsurv$Age2Surv)],obs_fecundity=feczscore[!is.na(SRsurv$Age2Surv)])
+  
+parameters_surv_fec <- list(
+  alpha=0.91298,
+  sl_surv=1,
+  sl_fec=1,
+  logbeta = log(b_srm),
+  logSigObs= 0
+  )
+
+
+compile("../R/Ricker_survival_fecundity.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
+dyn.load(dynlib("../R/Ricker_survival_fecundity"))
+ 
+obj_surv_fec<-MakeADFun(mydata_surv_fec,parameters_surv_fec ,random=NULL,DLL="Ricker_survival_fecundity")
+newtonOption(obj_surv_fec, smartsearch=FALSE)
+
+#newtonOption(smartsearch=FALSE)
+
+
+opt_surv_fec<-nlminb(obj_surv_fec$par,obj_surv_fec$fn,obj_surv_fec$gr)
+rep_surv_fec<-obj_surv_fec$report()
+
+TMBAIC(opt_surv_fec)
+
+
+SRsurv$residuals <- obj_surv_fec$report()$residuals
+SRsurv$model <- "survival to age 2 as a covariate"
+
+
+rsp <- ggplot(SRsurv )
+rsp <- rsp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+rsp <- rsp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+rsp <- rsp + geom_hline(yintercept = 0)
+rsp <- rsp + theme_bw(16)
+rsp <- rsp + scale_color_viridis_c(end = 0.8)
+rsp <- rsp + labs(title ="survival to age 2 and fecundity a covariate", x = "Spawners", y = "Recruits") 
+rsp
+
+
+
+```
+
 
 # comparison
 
 ```{r, resid_fig, echo=FALSE, fig.height = 5, fig.width = 10, fig.cap = "figures"}
 
-allfits<-rbind(SRdiagsimple,SRtimevar,SRdiagauto)
-#
-#
-#
+SRsurv2<-SR
+SRsurv2$residuals <- obj_surv$report()$residuals
+SRsurv2$model <-" Ricker with age 2 survival"
+SRsurv2$alpha <-exp(obj_surv$report()$alphat)
+
+SRfec2<-SR
+SRfec2$residuals <- obj_surv_fec$report()$residuals
+SRfec2$model <-" Ricker with age 2 survival and fecundity"
+SRfec2$alpha <- exp(obj_surv_fec$report()$alphat)
+allfits<-rbind(SRdiagsimple,SRtimevar,SRdiagauto,SRsurv2,SRfec2)
+
+
+
 pp <- ggplot(allfits )
 pp <- pp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
 pp <- pp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
@@ -364,6 +515,16 @@ pp <- pp + theme_bw(16)
 pp <- pp + scale_color_viridis_c(end = 0.8)
 pp <- pp + facet_wrap(~model)
 pp 
+
+
+
+ppa <- ggplot(allfits )
+ppa <- ppa + geom_line(aes(x=BroodYear,y=alpha, col=model),size=1.2)
+ppa <- ppa + geom_point(aes(x=BroodYear,y=alpha, col=model))
+ppa <- ppa + theme_bw(16)
+ppa <- ppa + scale_color_viridis_d(end = 0.9,option = "C")
+ppa 
+
 ```
 
 ```{r, echo=FALSE, warning=FALSE }
@@ -385,9 +546,10 @@ pp
 #
 #
 #
-aics<-data.frame(model=c("simple ricker", "autocorrelation in Recruitment", "time-varying productivity"),
- AIC= c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar) ),
- deltaAIC= c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar) )-min(c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar) )))
+aics<-data.frame(model=c("simple ricker", "autocorrelation in Recruitment", "time-varying productivity",
+  "model with survival to age 2", "model with survival and fecundity"),
+ AIC= c(TMBAIC(opt), TMBAIC(optar),  TMBAIC(opt_timevar), TMBAIC(opt_surv), TMBAIC(opt_surv_fec)),
+ deltaAIC= c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar), TMBAIC(opt_surv), TMBAIC(opt_surv_fec) )-min(c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar),TMBAIC(opt_surv),TMBAIC(opt_surv_fec) )))
 knitr::kable(aics)
 
 

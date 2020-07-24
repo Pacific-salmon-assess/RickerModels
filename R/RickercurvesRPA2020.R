@@ -6,6 +6,8 @@
 
 #load in required packages and libraries
 
+rmarkdown::render("../Rmd/RPA2020.rmd")
+
 library(ggplot2)
 library(TMB)
 library(bayesplot)
@@ -18,7 +20,6 @@ library(cowplot)
 source("TMB_functions.R")
 
 #render Rmd
-rmarkdown::render("../Rmd/RPA2020.rmd")
 #read in simple data set
 SR <- read.csv("../data/Harrison_simples_Apr18.csv")
 
@@ -44,7 +45,7 @@ S_msy <- a_srm/b_srm * (0.5 -0.07 * a_srm);
 
 predR1 <- SR$S_adj*exp(a_srm-b_srm*SR$S_adj)
 
-mydata<-list(obs_logR=log(SR$R),obs_S=SR$S_adj)
+mydata<-list(obs_R=(SR$R),obs_S=SR$S_adj)
 parameters_simple <- list(
   alpha=(a_srm),
   logbeta = log(b_srm),

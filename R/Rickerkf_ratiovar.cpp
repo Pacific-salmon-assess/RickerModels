@@ -18,7 +18,7 @@ template<class Type>
 Type objective_function<Type>::operator() ()
 {
 
-  DATA_VECTOR(obs_logR);   // observed log recruitment
+  DATA_VECTOR(obs_R);   // observed log recruitment
   DATA_VECTOR(obs_S);    // observed  Spawner
   
   DATA_SCALAR(prbeta1);
@@ -38,7 +38,7 @@ Type objective_function<Type>::operator() ()
   
 
   
-  int timeSteps=obs_logR.size();
+  int timeSteps=obs_R.size();
 
   Type beta = exp(logbeta);
   Type Smax  = Type(1.0)/beta;
@@ -53,7 +53,7 @@ Type objective_function<Type>::operator() ()
   Type tau        = sqrt(Type(1.0)-rho) * theta ;
 
 
-  vector<Type> pred_logR(timeSteps), logRS(timeSteps),umsy(timeSteps), Smsy(timeSteps), residuals(timeSteps);
+  vector<Type> pred_logRS(timeSteps), obs_logRS(timeSteps),umsy(timeSteps), Smsy(timeSteps), residuals(timeSteps);
 
   
 
@@ -72,18 +72,19 @@ Type objective_function<Type>::operator() ()
   }
 
   for(int i=0;i<timeSteps;i++){
-    if(!isNA(obs_logR(i))){
-      logRS(i) = alpha(i) - beta * obs_S(i) ;
-      pred_logR(i) = logRS(i) + log(obs_S(i));
+    if(!isNA(obs_R(i))){
+      obs_logRS(i) = log(obs_R(i)/obs_S(i));
+      pred_logRS(i) = alpha(i) - beta * obs_S(i) ;
+      //pred_logR(i) = logRS(i) + log(obs_S(i));
       umsy(i) = Type(.5) * alpha(i) - Type(0.07) * (alpha(i) * alpha(i)); 
       Smsy(i) =  alpha(i)/beta * (Type(0.5) -Type(0.07) * alpha(i));
-      residuals(i) = obs_logR(i) - pred_logR(i);
-      ans+=-dnorm(obs_logR(i),pred_logR(i),sig,true);
+      residuals(i) = obs_logRS(i) - pred_logRS(i);
+      ans+=-dnorm(obs_logRS(i),pred_logRS(i),sig,true);
     }
   
   }
 
-  REPORT(pred_logR)
+  REPORT(pred_logRS)
   REPORT(alpha)
   REPORT(sig)
   REPORT(tau)

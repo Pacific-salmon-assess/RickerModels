@@ -17,7 +17,7 @@ Type dlnorm(Type x, Type meanlog, Type sdlog, int give_log=0){
 template<class Type>
 Type objective_function<Type>::operator() ()
 {
-  DATA_VECTOR(obs_logR);   // observed log recruitment
+  DATA_VECTOR(obs_R);   // observed log recruitment
   DATA_VECTOR(obs_S);    // observed  Spawner
   DATA_VECTOR(obs_survival);    // observed  survival up to age 2
   
@@ -29,17 +29,17 @@ Type objective_function<Type>::operator() ()
  // PARAMETER(logSigtheta);
   //PARAMETER_VECTOR(logsurv)
   
-  int timeSteps=obs_logR.size();
+  int timeSteps=obs_R.size();
 
   Type beta=exp(logbeta);
   Type SigObs     = exp(logSigObs);
   //Type Sigtheta     = exp(logSigtheta);
   Type Smax  = Type(1.0)/beta;
-  Type Smsy, umsy;
+
   
   Type tau     = Type(1.0)/(SigObs*SigObs);
   
-  vector<Type> pred_logR(timeSteps), logRS(timeSteps), residuals(timeSteps);
+  vector<Type> pred_logRS(timeSteps), obs_logRS(timeSteps), residuals(timeSteps), alphat(timeSteps),Smsy(timeSteps), umsy(timeSteps);
 
  
 
@@ -52,21 +52,24 @@ Type objective_function<Type>::operator() ()
 
   for(int i=0;i<timeSteps;i++){
     if(!isNA(obs_survival(i))){
-      
-      logRS(i) = alpha + log(obs_survival(i)) - beta * obs_S(i) ;
-      pred_logR(i) = logRS(i) + log(obs_S(i));
-      residuals(i) = obs_logR(i) - pred_logR(i);
-      ans+=-dnorm(obs_logR(i),pred_logR(i),SigObs,true);
+      obs_logRS(i) = log(obs_R(i)/obs_S(i));
+      pred_logRS(i) = alpha + log(obs_survival(i)) - beta * obs_S(i) ;
+      alphat(i) = alpha + log(obs_survival(i));
+      //pred_logR(i) = logRS(i) + log(obs_S(i));
+      residuals(i) = obs_logRS(i) - pred_logRS(i);
+      umsy(i)     = Type(.5) * alphat(i) - Type(0.07) * (alphat(i) * alphat(i));
+      Smsy(i)     =  alphat(i)/beta * (Type(0.5) -Type(0.07) * alphat(i));  
+      ans+=-dnorm(obs_logRS(i),pred_logRS(i),SigObs,true);
     }
   
   }
 
-  umsy     = Type(.5) * alpha - Type(0.07) * (alpha * alpha);
-  Smsy     =  alpha/beta * (Type(0.5) -Type(0.07) * alpha);  
+ 
 
 
-  REPORT(pred_logR)
+  REPORT(pred_logRS)
   REPORT(alpha)
+  REPORT(alphat)
   REPORT(residuals)
   //REPORT(atwosurv)
   REPORT(tau)
