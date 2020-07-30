@@ -33,7 +33,7 @@ $R = a*S*exp(-b*S) *exp(\epsilon)$
 
 $\epsilon \sim N(0,\sigma)$
 
-```{r, echo=FALSE, warning=FALSE,message=FALSE }
+```{r, echo=FALSE, warning=FALSE,message=FALSE ,results='hide'}
 
 
 
@@ -65,7 +65,7 @@ simpl<-list(
   dll="Ricker_simple",
   DIR="." )
 
-compile("../R/Ricker_simple.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="")
+#compile("../R/Ricker_simple.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="")
 dyn.load(dynlib("../R/Ricker_simple"))
 
 
@@ -74,16 +74,17 @@ newtonOption(obj, smartsearch=FALSE)
   
 opt<-nlminb(obj$par,obj$fn,obj$gr)
 
+summary(obj$report())
+
 simplepar<-data.frame(parameters=c("a","b","$\\sigma$"),
 	values=c(exp(obj$report()$alpha),obj$report()$beta,obj$report()$SigObs))
 
-knitr::kable(simplepar)
 
 #sdreport(obj)
 #
 nparsimple <- 3 
 simpleRickerAIC <- 2*nparsimple-2*- opt$objective
-simpleRickerAIC
+
 #
 ##diagnosticts
 #qqnorm(obj$report()$residuals)
@@ -111,6 +112,8 @@ posterior_simple <- posteriorsdf(simpleB)
 simpdf <- posterior_simple$posteriors
 
 
+names(posterior_simple)
+
 a<-(simpdf$value[simpdf$parameters=="alpha"])
 alpha<-exp(simpdf$value[simpdf$parameters=="alpha"])
 beta<-exp(simpdf$value[simpdf$parameters=="logbeta"])
@@ -119,26 +122,38 @@ sig<-exp(simpdf$value[simpdf$parameters=="logSigObs"])
 umsy_simple<-.5*a-0.07*a^2
 
 
-simplepar<-data.frame(parameters=c("a","b","$\\sigma$"),
+simpleparb<-data.frame(parameters=c("a","b","$\\sigma$"),
 	MLE=c(exp(obj$report()$alpha),obj$report()$beta,obj$report()$SigObs),
-	median=c(median(alpha),median(beta),median(sig)))
+	median=c(median(alpha),median(beta),median(sig)),
+  low=c(quantile(alpha, probs=0.025), quantile(beta, probs=0.025), quantile(sig, probs=0.025)),
+  high=c(quantile(alpha, probs=0.975), quantile(beta, probs=0.975), quantile(sig, probs=0.975)))
 
-knitr::kable(simplepar)
+knitr::kable(simpleparb)
 
-deriv_posteriors<-data.frame(chains=rep(simpdf$chains[simpdf$parameters=="logbeta"],4),
-                             parameters = rep(c("a","b","S[max]","sigma"),each=length(a)),
-                             value = c(a,beta,Smax,sig)
+deriv_posteriors<-data.frame(chains=rep(simpdf$chains[simpdf$parameters=="logbeta"],3),
+                             parameters = rep(c("a","b","sigma"),each=length(a)),
+                             value = c(a,beta,sig)
                              )
 
-#pm <- ggplot(deriv_posteriors)
-#pm <- pm + geom_density(aes(x=value, color=chains), size=1.2)
-#pm <- pm + facet_wrap(~parameters, scales="free",
-#  labeller = label_parsed)
-#pm <- pm + theme_bw(16)+labs(colour = "Prior", x="Value", y="Density")
-#pm <- pm + scale_color_viridis_d(end = 0.8,option = "A")
-#
-#pm
 
+```
+
+```{r table0, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+
+knitr::kable(simpleparb)
+```
+
+
+```{r simplepost_fig, echo=FALSE, fig.height = 7, fig.width = 10, fig.cap = "Figure 1. Posterior probability distributions for simple Ricker model."}
+
+pm <- ggplot(deriv_posteriors)
+pm <- pm + geom_density(aes(x=value, color=chains), size=1.2)
+pm <- pm + facet_wrap(~parameters, scales="free",
+  labeller = label_parsed)
+pm <- pm + theme_bw(16)+labs(colour = "Prior", x="Value", y="Density")
+pm <- pm + scale_color_viridis_d(end = 0.8,option = "A")
+
+pm
 ```
 
 # Ricker with autocorrelation
@@ -150,7 +165,7 @@ $\epsilon \sim N(0,\sigma_{AR})$
 
 $\sigma_{AR} = \sigma * sqrt(1-\rho^2)$
 
-```{r, echo=FALSE, warning=FALSE }
+```{r, echo=FALSE, warning=FALSE ,results='hide'}
 
 
 mydataar<-list(obs_R=(SR$R),obs_S=SR$S_adj)
@@ -161,7 +176,7 @@ parameters_autocorr <- list(
   logSigObs= log(.4), 
   rho=0.3)
 
-compile("../R/Ricker_autocorr_ch.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
+#compile("../R/Ricker_autocorr_ch.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
 dyn.load(dynlib("../R/Ricker_autocorr_ch"))
 #
 objar<-MakeADFun(mydataar,parameters_autocorr,random=NULL,DLL="Ricker_autocorr_ch")
@@ -191,7 +206,7 @@ autoB<-list(
   obj=objar,
   nchain=3,
   iter=iteracs,
-  lowbd=c(0.1,-13.5,-6.0,-1),
+  lowbd=c(0.1,-15.5,-6.0,-1),
   hibd=c(4.0,-8.5,5.0,1)
 )
 
@@ -203,12 +218,16 @@ posterior_ar <- posteriorsdf(autoB)
 ardf <- posterior_ar$posteriors
 
 
+unique(ardf$parameters)
+
 a_ar<-(ardf$value[ardf$parameters=="alpha"])
 alpha_ar<-exp(ardf$value[ardf$parameters=="alpha"])
 beta_ar<-exp(ardf$value[ardf$parameters=="logbeta"])
 Smax_ar<-1/exp(ardf$value[ardf$parameters=="logbeta"])
-sig_ar<-exp(ardf$value[ardf$parameters=="logSigObs"])
-rho_ar<-ardf$value[ardf$parameters=="rho"]
+rho_ar<- 2 * boot::inv.logit(ardf$value[ardf$parameters=="rho"])-1
+sig_ar<-exp(ardf$value[ardf$parameters=="logSigObs"])*sqrt(1-rho_ar^2)
+
+
 umsy_ar<-.5*a_ar-0.07*a_ar^2
 
 
@@ -220,9 +239,12 @@ umsy_ar<-.5*a_ar-0.07*a_ar^2
 
 arpar<-data.frame(parameters=c("a","b","$\\sigma_{AR}$","$\\rho$"),
 	MLE=c(exp(objar$report()$alpha),objar$report()$beta,objar$report()$SigAR,objar$report()$rhoo),
-	median=c(median(alpha_ar),median(beta_ar),median(sig_ar),median(rho_ar)))
+	median=c(median(alpha_ar),median(beta_ar),median(sig_ar),median(rho_ar)),
+  low=c(quantile(alpha_ar, probs=0.025), quantile(beta_ar, probs=0.025), 
+    quantile(sig_ar, probs=0.025), quantile(rho_ar, probs=0.025)),
+  high=c(quantile(alpha_ar, probs=0.975), quantile(beta_ar, probs=0.975), 
+    quantile(sig_ar, probs=0.975), quantile(rho_ar, probs=0.975)))
 
-knitr::kable(arpar)
 
 #
 #rpar <- ggplot(SRdiagauto)
@@ -248,7 +270,31 @@ knitr::kable(arpar)
 #rpall <- rall + facet_wrap(~ model)
 #rpall
 
+
+deriv_posteriorsar<-data.frame(chains=rep(ardf$chains[ardf$parameters=="logbeta"],4),
+                             parameters = rep(c("a","b","sigma","rho"),each=length(a)),
+                             value = c(a_ar,beta_ar,sig_ar,rho_ar)
+                             )
+
 ```
+
+```{r tablear, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+
+knitr::kable(arpar)
+```
+
+
+```{r arpost_fig, echo=FALSE, fig.height = 7, fig.width = 9, fig.cap = "Figure . Posterior probability distributions for Ricker model with autocorrelation."}
+
+pmar <- ggplot(deriv_posteriorsar)
+pmar <- pmar + geom_density(aes(x=value, color=chains), size=1.2)
+pmar <- pmar + facet_wrap(~parameters, scales="free",labeller = label_parsed)
+pmar <- pmar + theme_bw(16)+labs( x="Value", y="Density")
+pmar <- pmar + scale_color_viridis_d(end = 0.8,option = "A")
+pmar
+
+```
+
 
 # Ricker with time-varying productivity
 
@@ -265,7 +311,7 @@ $v \sim N(0,\sigma_{a})$
 
 $\sigma_{tot}= sqrt(\sigma^2 + \sigma_{a}^2)$
 
-```{r echo=FALSE, warning=FALSE,message=FALSE }
+```{r echo=FALSE, warning=FALSE,message=FALSE ,results='hide'}
 
 
 mydatatimevar<-list(obs_R=(SR$R),obs_S=SR$S_adj,prbeta1=3,prbeta2=3)
@@ -290,7 +336,7 @@ recursive<-list(
   )
 
 
-compile("../R/Rickerkf_ratiovar.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
+#compile("../R/Rickerkf_ratiovar.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
 dyn.load(dynlib("../R/Rickerkf_ratiovar"))
 
  
@@ -322,29 +368,63 @@ recursiveB<-list(
 posterior_recursive<-posteriorsdf(recursiveB)
 recrsdf<-posterior_recursive$posteriors
 
+unique(recrsdf$parameters)
+
 a_rb<-(recrsdf$value[recrsdf$parameters=="alphao"])
 beta_rb<-exp(recrsdf$value[recrsdf$parameters=="logbeta"])
 Smax_rb<-1/exp(recrsdf$value[recrsdf$parameters=="logbeta"])
 rho_rb<-(recrsdf$value[recrsdf$parameters=="rho"])
 umsy_rb<-.5*a_rb-0.07*a_rb^2
+sigtot <- 1/exp(recrsdf$value[recrsdf$parameters=="logvarphi"])
 
 soa <- recrsdf[grep("alpha",recrsdf$parameters),]
 soa$umsy=.5*soa$value-0.07*soa$value^2
 
+asummary <- aggregate(soa$value,list(soa$parameters),function(x){quantile(x,probs=c(0.025,.5,.975))})
+asummary <- asummary[c(1,12,23,25:30,2:11,13:22,24),]
 umsyposteriorsummary<-aggregate(soa$umsy,list(soa$parameters),function(x){quantile(x,probs=c(0.025,.5,.975))})
 umsyposteriorsummary<-umsyposteriorsummary[c(1,12,23,25:30,2:11,13:22,24),]
 
 
 
-timevar_par<-data.frame(parameters=c("a","b","$\\sigma_{tot}$"),
+timevar_par<-data.frame(parameters=c("a_[last4]","b","$\\sigma_{tot}$"),
 	MLE=c(exp(mean(obj_timevar$report()$alpha[meanct])),obj_timevar$report()$beta,
 		sqrt(obj_timevar$report()$sig^2+obj_timevar$report()$tau^2)),
-	median=c(exp(mean(umsyposteriorsummary$x[27:30,2])),median(beta_ar), NA))
+	median=c(exp(mean(asummary$x[27:30,2])),median(beta_rb), median(sigtot)),
+  low=c(exp(mean(asummary$x[27:30,1])), quantile(beta_rb, probs=0.025),  quantile(sigtot, probs=0.025)),
+  high=c(exp(mean(asummary$x[27:30,3])), quantile(beta_rb, probs=0.975),  quantile(sigtot, probs=0.975)))
 
-knitr::kable(timevar_par)
+
+
+
+
+
+deriv_posteriorsrb<-data.frame(chains=rep(recrsdf$chains[recrsdf$parameters=="logbeta"],4),
+                             parameters = rep(c("a","b","sigma","frac"),each=length(a)),
+                             value = c(a_rb,beta_rb,sigtot,rho_rb)
+                             )
+
+
 
 ```
 
+
+
+```{r tablerb, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+
+knitr::kable(timevar_par, caption = "Parameter estimates for model with time-varying productivity. productivity values are the average for the last 4 years.")
+knitr::kable(arpar)
+```
+
+```{r rbpost_fig, echo=FALSE, fig.height = 7, fig.width = 9, fig.cap = "Figure 1. Posterior probability distributions for simple Ricker model."}
+
+pmrb <- ggplot(deriv_posteriorsrb)
+pmrb <- pmrb + geom_density(aes(x=value, color=chains), size=1.2)
+pmrb <- pmrb + facet_wrap(~parameters, scales="free",labeller = label_parsed)
+pmrb <- pmrb + theme_bw(16)+labs(colour = "Prior", x="Value", y="Density")
+pmrb <- pmrb + scale_color_viridis_d(end = 0.8,option = "A")
+pmrb
+```
 # Ricker model with survival as covariate
 
 
@@ -355,7 +435,7 @@ $R_t = a*surv_t*S_t*exp(-b*S_t) *exp(\epsilon)$
 
 $\epsilon \sim N(0,\sigma)$
 
-```{r echo=FALSE, warning=FALSE,message=FALSE }
+```{r echo=FALSE, warning=FALSE,message=FALSE,results='hide' }
 
 SRsurv <- read.csv("../data/Harrison_simples_survchi.csv")
 
@@ -382,7 +462,7 @@ parameters_surv <- list(
   )
 
 
-compile("../R/Ricker_survival.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
+#compile("../R/Ricker_survival.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
 dyn.load(dynlib("../R/Ricker_survival"))
 
  
@@ -411,20 +491,69 @@ rsp <- rsp + labs(title ="survival to age 2 as a covariate", x = "Spawners", y =
 rsp
 
 
+##MCMC
+survB<-list(
+  obj=obj_surv,
+  nchain=3,
+  iter=iteracs,
+  lowbd=c(0.1,-13.5,-6.0),
+  hibd=c(50.0,-8.5,5.0)
+)
+
+posterior_surv <- posteriorsdf(survB)
+
+#plots
+#plot_posteriors(posterior_simple$posteriors)
+#posteriors of derived quantities -- the interesting ones
+survdf <- posterior_simple$posteriors
+
+
+names(posterior_surv)
+
+a<-(survdf$value[survdf$parameters=="alpha"])
+alpha<-exp(survdf$value[survdf$parameters=="alpha"])
+beta<-exp(survdf$value[survdf$parameters=="logbeta"])
+Smax<-1/exp(survdf$value[survdf$parameters=="logbeta"])
+sig<-exp(survdf$value[survdf$parameters=="logSigObs"])
+umsy_simple<-.5*a-0.07*a^2
+
+
+#survparb<-data.frame(parameters=c("a","b","$\\sigma$"),
+#  MLE=c(exp(obj$report()$alpha),obj$report()$beta,obj$report()$SigObs),
+#  median=c(median(alpha),median(beta),median(sig)),
+#  low=c(quantile(alpha, probs=0.025), quantile(beta, probs=0.025), quantile(sig, probs=0.025)),
+#  high=c(quantile(alpha, probs=0.975), quantile(beta, probs=0.975), quantile(sig, probs=0.975)))
+#
+#knitr::kable(survparb)
+#
+#deriv_posteriorssurv<-data.frame(chains=rep(simpdf$chains[simpdf$parameters=="logbeta"],3),
+#                             parameters = rep(c("a","b","sigma"),each=length(a)),
+#                             value = c(a,beta,sig)
+#                             )
+
 
 ```
 
+
+
+
 # Ricker model with survival and fecundity as covariates
 
-TODO =). probably need to centralize the variables.
+In this version of the model we describe the ricker productivity as function of two covariates. the survival index and a fecundity index. We use z-scores for these covariates. 
 
-```{r echo=FALSE, warning=FALSE,message=FALSE }
+
+
+$R_t = a_t*S_t*exp(-b*S_t) *exp(\epsilon)$
+$a_t = a_0+ \gamma_1*surv_t \gamma_2 * fec_t$
+$\epsilon \sim N(0,\sigma)$
+
+```{r echo=FALSE, warning=FALSE,message=FALSE ,results='hide'}
 
 survzscore <- (SRsurv$Age2Surv-mean(SRsurv$Age2Surv))/sd(SRsurv$Age2Surv)
 feczscore <- (SRsurv$fecundity-mean(SRsurv$fecundity))/sd(SRsurv$fecundity )
 
 sr_surv <- lm(log(SR$R/SR$S_adj)~ (survzscore)+(feczscore) +SR$S_adj)
-
+summary(sr_surv)
 #stack spawners, recruitments, fecundity, time var prod, survival
 
 psz <- ggplot(SRsurv)
@@ -492,7 +621,7 @@ rsp
 
 # comparison
 
-```{r, resid_fig, echo=FALSE, fig.height = 5, fig.width = 10, fig.cap = "figures"}
+```{r echo=FALSE, warning=FALSE,message=FALSE ,results='hide'}
 
 SRsurv2<-SR
 SRsurv2$residuals <- obj_surv$report()$residuals
@@ -507,6 +636,14 @@ allfits<-rbind(SRdiagsimple,SRtimevar,SRdiagauto,SRsurv2,SRfec2)
 
 
 
+
+
+```
+
+
+
+```{r resid_fig, echo=FALSE, fig.height = 7, fig.width = 9, fig.cap = "Figure . Residual comparison with all models."}
+
 pp <- ggplot(allfits )
 pp <- pp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
 pp <- pp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
@@ -516,7 +653,12 @@ pp <- pp + scale_color_viridis_c(end = 0.8)
 pp <- pp + facet_wrap(~model)
 pp 
 
+```
 
+
+
+
+```{r prod_fig, echo=FALSE, fig.height = 7, fig.width = 9, fig.cap = "Figure . Productivity comparison with all models."}
 
 ppa <- ggplot(allfits )
 ppa <- ppa + geom_line(aes(x=BroodYear,y=alpha, col=model),size=1.2)
@@ -546,10 +688,11 @@ ppa
 #
 #
 #
-aics<-data.frame(model=c("simple ricker", "autocorrelation in Recruitment", "time-varying productivity",
-  "model with survival to age 2", "model with survival and fecundity"),
- AIC= c(TMBAIC(opt), TMBAIC(optar),  TMBAIC(opt_timevar), TMBAIC(opt_surv), TMBAIC(opt_surv_fec)),
- deltaAIC= c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar), TMBAIC(opt_surv), TMBAIC(opt_surv_fec) )-min(c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar),TMBAIC(opt_surv),TMBAIC(opt_surv_fec) )))
+aics<-data.frame(model=c("simple ricker", "autocorrelation in Recruitment", "time-varying productivity", 
+  "Ricker with survival covariate","Ricker with survival and fecundity covariates" ),
+ AIC= c(TMBAIC(opt), TMBAIC(optar),  TMBAIC(opt_timevar), TMBAIC(opt_surv),TMBAIC(opt_surv_fec)),
+ deltaAIC= c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar), TMBAIC(opt_surv),TMBAIC(opt_surv_fec) )-
+ min(c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar), TMBAIC(opt_timevar), TMBAIC(opt_surv),TMBAIC(opt_surv_fec))))
 knitr::kable(aics)
 
 
