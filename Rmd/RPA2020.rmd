@@ -75,7 +75,7 @@ newtonOption(obj, smartsearch=FALSE)
 opt<-nlminb(obj$par,obj$fn,obj$gr)
 
 summary(obj$report())
-
+sdreport(obj)
 simplepar<-data.frame(parameters=c("a","b","$\\sigma$"),
 	values=c(exp(obj$report()$alpha),obj$report()$beta,obj$report()$SigObs))
 
@@ -206,8 +206,8 @@ autoB<-list(
   obj=objar,
   nchain=3,
   iter=iteracs,
-  lowbd=c(0.1,-15.5,-6.0,-1),
-  hibd=c(4.0,-8.5,5.0,1)
+  lowbd=c(0.1,-15.5,-6.0,-2),
+  hibd=c(4.0,-7.0,5.0,2)
 )
 
 posterior_ar <- posteriorsdf(autoB)
@@ -218,11 +218,11 @@ posterior_ar <- posteriorsdf(autoB)
 ardf <- posterior_ar$posteriors
 
 
-unique(ardf$parameters)
-
 a_ar<-(ardf$value[ardf$parameters=="alpha"])
 alpha_ar<-exp(ardf$value[ardf$parameters=="alpha"])
 beta_ar<-exp(ardf$value[ardf$parameters=="logbeta"])
+logbeta_ar<-(ardf$value[ardf$parameters=="logbeta"])
+
 Smax_ar<-1/exp(ardf$value[ardf$parameters=="logbeta"])
 rho_ar<- 2 * boot::inv.logit(ardf$value[ardf$parameters=="rho"])-1
 sig_ar<-exp(ardf$value[ardf$parameters=="logSigObs"])*sqrt(1-rho_ar^2)
@@ -362,7 +362,7 @@ recursiveB<-list(
   nchain=3,
   iter=iteracs,
   lowbd=c(0.1,-13.5,0.0,-3.0),
-  hibd=c(4.0,-9.,1.0,5.0)
+  hibd=c(4.0,-8.,1.0,5.0)
 )
 
 posterior_recursive<-posteriorsdf(recursiveB)
@@ -409,12 +409,6 @@ deriv_posteriorsrb<-data.frame(chains=rep(recrsdf$chains[recrsdf$parameters=="lo
 ```
 
 
-
-```{r tablerb, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
-
-knitr::kable(timevar_par, caption = "Parameter estimates for model with time-varying productivity. productivity values are the average for the last 4 years.")
-knitr::kable(arpar)
-```
 
 ```{r rbpost_fig, echo=FALSE, fig.height = 7, fig.width = 9, fig.cap = "Figure 1. Posterior probability distributions for simple Ricker model."}
 
@@ -481,14 +475,14 @@ SRsurv$residuals <- obj_surv$report()$residuals
 SRsurv$model <- "survival to age 2 as a covariate"
 
 
-rsp <- ggplot(SRsurv )
-rsp <- rsp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
-rsp <- rsp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
-rsp <- rsp + geom_hline(yintercept = 0)
-rsp <- rsp + theme_bw(16)
-rsp <- rsp + scale_color_viridis_c(end = 0.8)
-rsp <- rsp + labs(title ="survival to age 2 as a covariate", x = "Spawners", y = "Recruits") 
-rsp
+#rsp <- ggplot(SRsurv )
+#rsp <- rsp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+#rsp <- rsp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+#rsp <- rsp + geom_hline(yintercept = 0)
+#rsp <- rsp + theme_bw(16)
+#rsp <- rsp + scale_color_viridis_c(end = 0.8)
+#rsp <- rsp + labs(title ="survival to age 2 as a covariate", x = "Spawners", y = "Recruits") 
+#rsp
 
 
 ##MCMC
@@ -505,24 +499,27 @@ posterior_surv <- posteriorsdf(survB)
 #plots
 #plot_posteriors(posterior_simple$posteriors)
 #posteriors of derived quantities -- the interesting ones
-survdf <- posterior_simple$posteriors
+survdf <- posterior_surv$posteriors
 
 
-names(posterior_surv)
-
-a<-(survdf$value[survdf$parameters=="alpha"])
-alpha<-exp(survdf$value[survdf$parameters=="alpha"])
-beta<-exp(survdf$value[survdf$parameters=="logbeta"])
-Smax<-1/exp(survdf$value[survdf$parameters=="logbeta"])
-sig<-exp(survdf$value[survdf$parameters=="logSigObs"])
-umsy_simple<-.5*a-0.07*a^2
 
 
-#survparb<-data.frame(parameters=c("a","b","$\\sigma$"),
-#  MLE=c(exp(obj$report()$alpha),obj$report()$beta,obj$report()$SigObs),
-#  median=c(median(alpha),median(beta),median(sig)),
-#  low=c(quantile(alpha, probs=0.025), quantile(beta, probs=0.025), quantile(sig, probs=0.025)),
-#  high=c(quantile(alpha, probs=0.975), quantile(beta, probs=0.975), quantile(sig, probs=0.975)))
+a_surv<-(survdf$value[survdf$parameters=="alpha"])
+
+aall<-sapply(a_surv,function(x){x*SRsurv$Age2Surv})
+
+alpha_surv<-exp(aall)
+beta_surv<-exp(survdf$value[survdf$parameters=="logbeta"])
+Smax_surv<-1/exp(survdf$value[survdf$parameters=="logbeta"])
+sig_surv<-exp(survdf$value[survdf$parameters=="logSigObs"])
+
+
+
+survparb<-data.frame(parameters=c("a[2010]","a[2011]","a[2012]","a[2013]","b","$\\sigma$"),
+  MLE=c(exp(obj_surv$report()$alpha*SRsurv$Age2Surv[meanct]),obj_surv$report()$beta,obj_surv$report()$SigObs),
+  median=c(apply(aall,1,median)[meanct],median(beta_surv),median(sig_surv)),
+  low=c(apply(aall,1, function(x){quantile(x, probs=0.025)})[meanct], quantile(beta_surv, probs=0.025), quantile(sig_surv, probs=0.025)),
+  high=c(apply(aall,1,function(x){quantile(x, probs=0.975)})[meanct], quantile(beta_surv, probs=0.975), quantile(sig_surv, probs=0.975)))
 #
 #knitr::kable(survparb)
 #
@@ -535,6 +532,12 @@ umsy_simple<-.5*a-0.07*a^2
 ```
 
 
+
+```{r tablerb, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+
+knitr::kable(survparb, caption = "Parameter estimates for model with survival as a covariate.")
+
+```
 
 
 # Ricker model with survival and fecundity as covariates
@@ -552,8 +555,8 @@ $\epsilon \sim N(0,\sigma)$
 survzscore <- (SRsurv$Age2Surv-mean(SRsurv$Age2Surv))/sd(SRsurv$Age2Surv)
 feczscore <- (SRsurv$fecundity-mean(SRsurv$fecundity))/sd(SRsurv$fecundity )
 
-sr_surv <- lm(log(SR$R/SR$S_adj)~ (survzscore)+(feczscore) +SR$S_adj)
-summary(sr_surv)
+sr_surv_fec <- lm(log(SR$R/SR$S_adj)~ (survzscore)+(feczscore) +SR$S_adj)
+
 #stack spawners, recruitments, fecundity, time var prod, survival
 
 psz <- ggplot(SRsurv)
@@ -561,7 +564,7 @@ psz <- psz + geom_line(aes(x=BroodYear,y=survzscore),size=1.2)
 psz <- psz + geom_point(aes(x=BroodYear,y=survzscore, col=survzscore),stroke=3)
 psz <- psz + geom_hline(yintercept = 0,na.rm=T)
 psz <- psz + theme_bw(16)
-psz <- psz + scale_color_viridis_c(end = 0.8)
+psz <- psz + scale_color_viridis_c(end = 0.8,option = "A")
 
 
 pfz <- ggplot(SRsurv)
@@ -569,7 +572,7 @@ pfz <- pfz + geom_line(aes(x=BroodYear,y=feczscore),size=1.2)
 pfz <- pfz + geom_point(aes(x=BroodYear,y=feczscore, col=feczscore),stroke=3)
 pfz <- pfz + geom_hline(yintercept = 0,na.rm=T)
 pfz <- pfz + theme_bw(16)
-pfz <- pfz + scale_color_viridis_c(end = 0.8)
+pfz <- pfz + scale_color_viridis_c(end = 0.8,option = "A")
  
 plot_grid(psz,pfz)
 
@@ -586,7 +589,7 @@ parameters_surv_fec <- list(
   )
 
 
-compile("../R/Ricker_survival_fecundity.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
+#compile("../R/Ricker_survival_fecundity.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
 dyn.load(dynlib("../R/Ricker_survival_fecundity"))
  
 obj_surv_fec<-MakeADFun(mydata_surv_fec,parameters_surv_fec ,random=NULL,DLL="Ricker_survival_fecundity")
@@ -605,15 +608,60 @@ SRsurv$residuals <- obj_surv_fec$report()$residuals
 SRsurv$model <- "survival to age 2 as a covariate"
 
 
-rsp <- ggplot(SRsurv )
-rsp <- rsp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
-rsp <- rsp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
-rsp <- rsp + geom_hline(yintercept = 0)
-rsp <- rsp + theme_bw(16)
-rsp <- rsp + scale_color_viridis_c(end = 0.8)
-rsp <- rsp + labs(title ="survival to age 2 and fecundity a covariate", x = "Spawners", y = "Recruits") 
-rsp
+#rsp <- ggplot(SRsurv )
+#rsp <- rsp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+#rsp <- rsp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+#rsp <- rsp + geom_hline(yintercept = 0)
+#rsp <- rsp + theme_bw(16)
+#rsp <- rsp + scale_color_viridis_c(end = 0.8)
+#rsp <- rsp + labs(title ="survival to age 2 and fecundity a covariate", x = "Spawners", y = "Recruits") 
+#rsp
 
+
+
+##MCMC
+survfecB<-list(
+  obj=obj_surv_fec,
+  nchain=3,
+  iter=iteracs,
+  lowbd=c(0.1,-10,-10,-13.5,-6.0),
+  hibd=c(50.0,10,10,-8.5,5.0)
+)
+
+
+
+posterior_survfec <- posteriorsdf(survfecB)
+
+#plots
+#plot_posteriors(posterior_simple$posteriors)
+#posteriors of derived quantities -- the interesting ones
+survfecdf <- posterior_survfec$posteriors
+
+
+unique(survfecdf$parameters)
+
+a_survfec <- (survfecdf$value[survfecdf$parameters=="alpha"])
+slfec <- survfecdf$value[survfecdf$parameters=="sl_surv"]
+slsurv <- survfecdf$value[survfecdf$parameters=="sl_fec"]
+
+aallfec <- matrix(NA, nrow=length(SRsurv$Age2Surv), ncol=length(a_survfec))
+
+for(i in seq_along(SRsurv$Age2Surv)){
+  aallfec[i,] <- a_survfec+slfec*feczscore[i]+slsurv*survzscore[i]
+}
+
+alphaallfec<-exp(aallfec)
+beta_survfec<-exp(survfecdf$value[survfecdf$parameters=="logbeta"])
+Smax_survfec<-1/exp(survfecdf$value[survfecdf$parameters=="logbeta"])
+sig_survfec<-exp(survfecdf$value[survfecdf$parameters=="logSigObs"])
+
+
+
+survfecparb<-data.frame(parameters=c("a[2010]","a[2011]","a[2012]","a[2013]","b","$\\sigma$"),
+  MLE=c(exp(obj_surv_fec$report()$alphat[meanct]),obj_surv_fec$report()$beta,obj_surv_fec$report()$SigObs),
+  median=c(apply(aallfec,1,median)[meanct],median(beta_survfec),median(sig_survfec)),
+  low=c(apply(aallfec,1, function(x){quantile(x, probs=0.025)})[meanct], quantile(beta_survfec, probs=0.025), quantile(sig_survfec, probs=0.025)),
+  high=c(apply(aallfec,1,function(x){quantile(x, probs=0.975)})[meanct], quantile(beta_survfec, probs=0.975), quantile(sig_survfec, probs=0.975)))
 
 
 ```
@@ -642,7 +690,7 @@ allfits<-rbind(SRdiagsimple,SRtimevar,SRdiagauto,SRsurv2,SRfec2)
 
 
 
-```{r resid_fig, echo=FALSE, fig.height = 7, fig.width = 9, fig.cap = "Figure . Residual comparison with all models."}
+```{r residYR_fig, echo=FALSE, fig.height = 7, fig.width = 12, fig.cap = "Figure . Residual vs. Brood year comparison over years with all models."}
 
 pp <- ggplot(allfits )
 pp <- pp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
@@ -657,8 +705,22 @@ pp
 
 
 
+```{r residS_fig, echo=FALSE, fig.height = 7, fig.width = 12, fig.cap = "Figure . Residuals vs Spawners comparison over years with all models."}
 
-```{r prod_fig, echo=FALSE, fig.height = 7, fig.width = 9, fig.cap = "Figure . Productivity comparison with all models."}
+psp <- ggplot(allfits )
+#psp <- psp + geom_line(aes(x=S_adj,y=residuals),size=1.2)
+psp <- psp + geom_point(aes(x=S_adj,y=residuals, col=residuals),stroke=3)
+psp <- psp + geom_hline(yintercept = 0)
+psp <- psp + theme_bw(16) + xlab("Spawners")
+psp <- psp + scale_color_viridis_c(end = 0.8)
+psp <- psp + facet_wrap(~model)
+psp 
+
+```
+
+
+
+```{r prod_fig, echo=FALSE, fig.height = 7, fig.width = 12, fig.cap = "Figure . Productivity comparison with all models."}
 
 ppa <- ggplot(allfits )
 ppa <- ppa + geom_line(aes(x=BroodYear,y=alpha, col=model),size=1.2)
