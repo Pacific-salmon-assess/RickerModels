@@ -53,8 +53,8 @@ Type objective_function<Type>::operator() ()
   for(int i=0;i<timeSteps;i++){
     if(!isNA(obs_survival(i))){
       obs_logRS(i) = log(obs_R(i)/obs_S(i));
-      pred_logRS(i) = alpha + log(obs_survival(i)) - beta * obs_S(i) ;
-      alphat(i) = alpha + log(obs_survival(i));
+      pred_logRS(i) = alpha * obs_survival(i) - beta * obs_S(i) ;
+      alphat(i) = alpha * obs_survival(i);
       //pred_logR(i) = logRS(i) + log(obs_S(i));
       residuals(i) = obs_logRS(i) - pred_logRS(i);
       umsy(i)     = Type(.5) * alphat(i) - Type(0.07) * (alphat(i) * alphat(i));

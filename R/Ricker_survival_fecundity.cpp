@@ -27,12 +27,11 @@ Type objective_function<Type>::operator() ()
   PARAMETER(sl_surv);
   PARAMETER(sl_fec);
  
-  //PARAMETER(atwosurv);
+  
   PARAMETER(logbeta);
-  //PARAMETER(rho);
+
   PARAMETER(logSigObs);
- // PARAMETER(logSigtheta);
-  //PARAMETER_VECTOR(logsurv)
+ 
   
   int timeSteps=obs_R.size();
 
@@ -58,9 +57,8 @@ Type objective_function<Type>::operator() ()
   for(int i=0;i<timeSteps;i++){
     if(!isNA(obs_survival(i))){
       obs_logRS(i) = log(obs_R(i)/obs_S(i));
-      pred_logRS(i) = alpha + sl_surv*obs_survival(i) + sl_fec*obs_fecundity(i) - beta * obs_S(i) ;
+      pred_logRS(i) = alpha + sl_surv*obs_survival(i) + sl_fec*obs_fecundity(i) - beta * obs_S(i) ;      
       alphat(i) = alpha + sl_surv*obs_survival(i) + sl_fec*obs_fecundity(i);
-      //pred_logR(i) = logRS(i) + log(obs_S(i));
       residuals(i) = obs_logRS(i) - pred_logRS(i);
       umsy(i)     = Type(.5) * alphat(i) - Type(0.07) * (alphat(i) * alphat(i));
       Smsy(i)     =  alphat(i)/beta * (Type(0.5) -Type(0.07) * alphat(i));  

@@ -29,7 +29,7 @@ iteracs <- 100000
 # Ricker simple
 
 Simple Ricker model of the form:
-$R = a*S*exp(-b*S) *exp(\epsilon)$
+$R_{t} = a*S_{t}*exp(-b*S_{t}) *exp(\epsilon_{t})$
 
 $\epsilon \sim N(0,\sigma)$
 
@@ -158,7 +158,8 @@ pm
 
 # Ricker with autocorrelation
 
- Ricker model with autocorrelation in residuals of the form:
+ Ricker model with autocorrelation in residuals of the form: 
+
 $R_t = a*S_t*exp(-b*S_t) *exp(\epsilon_t +\epsilon_{t-1} *\rho)$
 
 $\epsilon \sim N(0,\sigma_{AR})$
@@ -387,12 +388,16 @@ umsyposteriorsummary<-umsyposteriorsummary[c(1,12,23,25:30,2:11,13:22,24),]
 
 
 
-timevar_par<-data.frame(parameters=c("a_[last4]","b","$\\sigma_{tot}$"),
-	MLE=c(exp(mean(obj_timevar$report()$alpha[meanct])),obj_timevar$report()$beta,
+timevar_par<-data.frame(parameters=c("a_[2010]","a_[2011]","a_[2012]","a_[2013]","a_[avg4]","b","$\\sigma_{tot}$"),
+	MLE=c(exp(obj_timevar$report()$alpha[meanct]),
+    exp(mean(obj_timevar$report()$alpha[meanct])),obj_timevar$report()$beta,
 		sqrt(obj_timevar$report()$sig^2+obj_timevar$report()$tau^2)),
-	median=c(exp(mean(asummary$x[27:30,2])),median(beta_rb), median(sigtot)),
-  low=c(exp(mean(asummary$x[27:30,1])), quantile(beta_rb, probs=0.025),  quantile(sigtot, probs=0.025)),
-  high=c(exp(mean(asummary$x[27:30,3])), quantile(beta_rb, probs=0.975),  quantile(sigtot, probs=0.975)))
+	median=c(exp(asummary$x[27:30,2]),exp(mean(asummary$x[27:30,2])),
+    median(beta_rb), median(sigtot)),
+  low=c(exp(asummary$x[27:30,1]),exp(mean(asummary$x[27:30,1])), 
+    quantile(beta_rb, probs=0.025),  quantile(sigtot, probs=0.025)),
+  high=c(exp(asummary$x[27:30,3]),exp(mean(asummary$x[27:30,3])),
+   quantile(beta_rb, probs=0.975),  quantile(sigtot, probs=0.975)))
 
 
 
@@ -400,7 +405,7 @@ timevar_par<-data.frame(parameters=c("a_[last4]","b","$\\sigma_{tot}$"),
 
 
 deriv_posteriorsrb<-data.frame(chains=rep(recrsdf$chains[recrsdf$parameters=="logbeta"],4),
-                             parameters = rep(c("a","b","sigma","frac"),each=length(a)),
+                             parameters = rep(c("a","b","si[tot]","frac"),each=length(a)),
                              value = c(a_rb,beta_rb,sigtot,rho_rb)
                              )
 
@@ -409,8 +414,14 @@ deriv_posteriorsrb<-data.frame(chains=rep(recrsdf$chains[recrsdf$parameters=="lo
 ```
 
 
+```{r table, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
 
-```{r rbpost_fig, echo=FALSE, fig.height = 7, fig.width = 9, fig.cap = "Figure 1. Posterior probability distributions for simple Ricker model."}
+knitr::kable(timevar_par, caption = "Parameter estimates for model with time-varying productivity.")
+
+```
+
+
+```{r rbpost_fig, echo=FALSE, fig.height = 7, fig.width = 9, fig.cap = "Figure. Posterior probability distributions for simple Ricker model."}
 
 pmrb <- ggplot(deriv_posteriorsrb)
 pmrb <- pmrb + geom_density(aes(x=value, color=chains), size=1.2)
@@ -436,13 +447,6 @@ SRsurv <- read.csv("../data/Harrison_simples_survchi.csv")
 
 #stack spawners, recruitments, fecundity, time var prod, survival
 
-ep <- ggplot(SRsurv)
-ep <- ep + geom_line(aes(x=BroodYear,y=(Age2Surv)),size=1.2)
-ep <- ep + geom_point(aes(x=BroodYear,y=(Age2Surv), col=(Age2Surv)),stroke=3)
-ep <- ep + geom_hline(yintercept = mean((SRsurv$Age2Surv),na.rm=T))
-ep <- ep + theme_bw(16)
-ep <- ep + scale_color_viridis_c(end = 0.8)
-ep
 
 
  
@@ -450,7 +454,7 @@ mydata_surv<-list(obs_R=(SRsurv$R[!is.na(SRsurv$Age2Surv)]),obs_S=SRsurv$S_adj[!
   obs_survival=SRsurv$Age2Surv[!is.na(SRsurv$Age2Surv)])
   
 parameters_surv <- list(
-  alpha=0.91298,
+  alpha=20,
   logbeta = log(b_srm),
   logSigObs= 0
   )
@@ -491,7 +495,7 @@ survB<-list(
   nchain=3,
   iter=iteracs,
   lowbd=c(0.1,-13.5,-6.0),
-  hibd=c(50.0,-8.5,5.0)
+  hibd=c(100.0,-8.5,5.0)
 )
 
 posterior_surv <- posteriorsdf(survB)
@@ -514,26 +518,54 @@ Smax_surv<-1/exp(survdf$value[survdf$parameters=="logbeta"])
 sig_surv<-exp(survdf$value[survdf$parameters=="logSigObs"])
 
 
-
-survparb<-data.frame(parameters=c("a[2010]","a[2011]","a[2012]","a[2013]","b","$\\sigma$"),
-  MLE=c(exp(obj_surv$report()$alpha*SRsurv$Age2Surv[meanct]),obj_surv$report()$beta,obj_surv$report()$SigObs),
-  median=c(apply(aall,1,median)[meanct],median(beta_surv),median(sig_surv)),
-  low=c(apply(aall,1, function(x){quantile(x, probs=0.025)})[meanct], quantile(beta_surv, probs=0.025), quantile(sig_surv, probs=0.025)),
-  high=c(apply(aall,1,function(x){quantile(x, probs=0.975)})[meanct], quantile(beta_surv, probs=0.975), quantile(sig_surv, probs=0.975)))
+survparb<-data.frame(parameters=c("a[2010]","a[2011]","a[2012]","a[2013]","a[avg]","b","$\\sigma$"),
+  MLE=c(exp(obj_surv$report()$alpha*SRsurv$Age2Surv[meanct]),mean(exp(obj_surv$report()$alpha*SRsurv$Age2Surv[meanct])),
+    obj_surv$report()$beta,obj_surv$report()$SigObs),
+  median=c(apply(alpha_surv,1,median)[meanct],mean(apply(alpha_surv,1,median)[meanct]), 
+    median(beta_surv),median(sig_surv)),
+  low=c(apply(alpha_surv,1, function(x){quantile(x, probs=0.025)})[meanct],
+   mean(apply(alpha_surv,1, function(x){quantile(x, probs=0.025)})[meanct]), quantile(beta_surv, probs=0.025), quantile(sig_surv, probs=0.025)),
+  high=c(apply(alpha_surv,1,function(x){quantile(x, probs=0.975)})[meanct], 
+    mean(apply(alpha_surv,1,function(x){quantile(x, probs=0.975)})[meanct]), quantile(beta_surv, probs=0.975),
+    quantile(sig_surv, probs=0.975)))
 #
 #knitr::kable(survparb)
 #
-#deriv_posteriorssurv<-data.frame(chains=rep(simpdf$chains[simpdf$parameters=="logbeta"],3),
-#                             parameters = rep(c("a","b","sigma"),each=length(a)),
-#                             value = c(a,beta,sig)
-#                             )
+deriv_posteriorssurv<-data.frame(chains=rep(survdf$chains[survdf$parameters=="logbeta"],3),
+                             parameters = rep(c("a","b","sigma"),each=length(beta_surv)),
+                             value = c(a_surv,beta_surv,sig_surv)
+                             )
 
 
 ```
 
 
+```{r covsurv g, echo=FALSE, fig.height = 7, fig.width = 17, fig.cap = "Figure. Survival to age two estimates."}
 
-```{r tablerb, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+ep <- ggplot(SRsurv)
+ep <- ep + geom_line(aes(x=BroodYear,y=Age2Surv),size=1.2)
+ep <- ep + geom_point(aes(x=BroodYear,y=Age2Surv, col=(Age2Surv)),stroke=3)
+ep <- ep + geom_hline(yintercept = mean((SRsurv$Age2Surv),na.rm=T))
+ep <- ep + theme_bw(16)
+ep <- ep + scale_color_viridis_c(end = 0.8, option = "A")
+ep
+
+```
+
+
+
+```{r survpost_fig, echo=FALSE, fig.height = 7, fig.width = 9, fig.cap = "Figure. Posterior probability distributions for Ricker with survival as a covariate."}
+
+pmsurv <- ggplot(deriv_posteriorssurv)
+pmsurv <- pmsurv + geom_density(aes(x=value, color=chains), size=1.2)
+pmsurv <- pmsurv + facet_wrap(~parameters, scales="free",labeller = label_parsed)
+pmsurv <- pmsurv + theme_bw(16)+labs(colour = "Prior", x="Value", y="Density")
+pmsurv <- pmsurv + scale_color_viridis_d(end = 0.8,option = "A")
+pmsurv
+```
+
+
+```{r tablesurv, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
 
 knitr::kable(survparb, caption = "Parameter estimates for model with survival as a covariate.")
 
@@ -547,8 +579,11 @@ In this version of the model we describe the ricker productivity as function of 
 
 
 $R_t = a_t*S_t*exp(-b*S_t) *exp(\epsilon)$
+
 $a_t = a_0+ \gamma_1*surv_t \gamma_2 * fec_t$
+
 $\epsilon \sim N(0,\sigma)$
+
 
 ```{r echo=FALSE, warning=FALSE,message=FALSE ,results='hide'}
 
@@ -562,7 +597,7 @@ sr_surv_fec <- lm(log(SR$R/SR$S_adj)~ (survzscore)+(feczscore) +SR$S_adj)
 psz <- ggplot(SRsurv)
 psz <- psz + geom_line(aes(x=BroodYear,y=survzscore),size=1.2)
 psz <- psz + geom_point(aes(x=BroodYear,y=survzscore, col=survzscore),stroke=3)
-psz <- psz + geom_hline(yintercept = 0,na.rm=T)
+psz <- psz + geom_hline(yintercept = mean(SRsurv$Age2Surv),na.rm=T)
 psz <- psz + theme_bw(16)
 psz <- psz + scale_color_viridis_c(end = 0.8,option = "A")
 
@@ -574,14 +609,14 @@ pfz <- pfz + geom_hline(yintercept = 0,na.rm=T)
 pfz <- pfz + theme_bw(16)
 pfz <- pfz + scale_color_viridis_c(end = 0.8,option = "A")
  
-plot_grid(psz,pfz)
+
 
  
 mydata_surv_fec<-list(obs_R=(SRsurv$R[!is.na(SRsurv$Age2Surv)]),obs_S=SRsurv$S_adj[!is.na(SRsurv$Age2Surv)],
   obs_survival=survzscore[!is.na(SRsurv$Age2Surv)],obs_fecundity=feczscore[!is.na(SRsurv$Age2Surv)])
   
 parameters_surv_fec <- list(
-  alpha=0.91298,
+  alpha=10,
   sl_surv=1,
   sl_fec=1,
   logbeta = log(b_srm),
@@ -624,8 +659,8 @@ survfecB<-list(
   obj=obj_surv_fec,
   nchain=3,
   iter=iteracs,
-  lowbd=c(0.1,-10,-10,-13.5,-6.0),
-  hibd=c(50.0,10,10,-8.5,5.0)
+  lowbd=c(0.1,-20,-20,-13.5,-6.0),
+  hibd=c(100.0,20,20,-8.5,5.0)
 )
 
 
@@ -638,31 +673,76 @@ posterior_survfec <- posteriorsdf(survfecB)
 survfecdf <- posterior_survfec$posteriors
 
 
-unique(survfecdf$parameters)
-
-a_survfec <- (survfecdf$value[survfecdf$parameters=="alpha"])
-slfec <- survfecdf$value[survfecdf$parameters=="sl_surv"]
-slsurv <- survfecdf$value[survfecdf$parameters=="sl_fec"]
+a_survfec <- survfecdf$value[survfecdf$parameters=="alpha"]
+slfec <- survfecdf$value[survfecdf$parameters=="sl_fec"]
+slsurv <- survfecdf$value[survfecdf$parameters=="sl_surv"]
 
 aallfec <- matrix(NA, nrow=length(SRsurv$Age2Surv), ncol=length(a_survfec))
 
+
+#need to fix this!
 for(i in seq_along(SRsurv$Age2Surv)){
-  aallfec[i,] <- a_survfec+slfec*feczscore[i]+slsurv*survzscore[i]
+  #aallfec[i,] <- (a_survfec+sl_fec*feczscore[i])*SRsurv$Age2Surv[i]
+   aallfec[i,] <- a_survfec+ slsurv *survzscore[i]+slfec*feczscore[i]         
 }
 
-alphaallfec<-exp(aallfec)
-beta_survfec<-exp(survfecdf$value[survfecdf$parameters=="logbeta"])
-Smax_survfec<-1/exp(survfecdf$value[survfecdf$parameters=="logbeta"])
-sig_survfec<-exp(survfecdf$value[survfecdf$parameters=="logSigObs"])
+alphaallfec <- exp(aallfec)
+beta_survfec <- exp(survfecdf$value[survfecdf$parameters=="logbeta"])
+Smax_survfec <- 1/exp(survfecdf$value[survfecdf$parameters=="logbeta"])
+sig_survfec <- exp(survfecdf$value[survfecdf$parameters=="logSigObs"])
+#sl_surv<-survfecdf$value[survfecdf$parameters=="sl_surv"]
 
 
 
-survfecparb<-data.frame(parameters=c("a[2010]","a[2011]","a[2012]","a[2013]","b","$\\sigma$"),
-  MLE=c(exp(obj_surv_fec$report()$alphat[meanct]),obj_surv_fec$report()$beta,obj_surv_fec$report()$SigObs),
-  median=c(apply(aallfec,1,median)[meanct],median(beta_survfec),median(sig_survfec)),
-  low=c(apply(aallfec,1, function(x){quantile(x, probs=0.025)})[meanct], quantile(beta_survfec, probs=0.025), quantile(sig_survfec, probs=0.025)),
-  high=c(apply(aallfec,1,function(x){quantile(x, probs=0.975)})[meanct], quantile(beta_survfec, probs=0.975), quantile(sig_survfec, probs=0.975)))
+survfecparb<-data.frame(parameters=c("a[2010]","a[2011]","a[2012]","a[2013]","a[avg4]","b","$\\sigma$","surv_sl", "fec_sl"),
+  MLE=c(exp(obj_surv_fec$report()$alphat[meanct]),mean(exp(obj_surv_fec$report()$alphat[meanct])),
+    obj_surv_fec$report()$beta,obj_surv_fec$report()$SigObs,
+    obj_surv_fec$report()$sl_surv,obj_surv_fec$report()$sl_fec),
+  median=c(apply(alphaallfec,1,median)[meanct],mean(apply(alphaallfec,1,median)[meanct]),
+    median(beta_survfec),median(sig_survfec),median(slsurv),median(slfec)),
+  low=c(apply(alphaallfec,1, function(x){quantile(x, probs=0.025)})[meanct],
+    mean(apply(alphaallfec,1, function(x){quantile(x, probs=0.025)})[meanct]),
+    quantile(beta_survfec, probs=0.025), quantile(sig_survfec, probs=0.025), quantile(slsurv, probs=0.025),
+    quantile(slfec, probs=0.025)),
+  high=c(apply(alphaallfec,1,function(x){quantile(x, probs=0.975)})[meanct],
+   mean(apply(alphaallfec,1,function(x){quantile(x, probs=0.975)})[meanct]),
+   quantile(beta_survfec, probs=0.975), quantile(sig_survfec, probs=0.975), 
+   quantile(slsurv, probs=0.975), quantile(slfec, probs=0.975)))
 
+
+
+deriv_posteriorssurvfec<-data.frame(chains=rep(survfecdf$chains[survfecdf$parameters=="logbeta"],5),
+                             parameters = rep(c("a","b","sigma","surv_slope","fec_slope"),each=length(beta_survfec)),
+                             value = c(a_survfec,beta_survfec,sig_survfec,slsurv,slfec)
+                             )
+
+```
+
+
+
+```{r covzscores g, echo=FALSE, fig.height = 7, fig.width = 17, fig.cap = "Figure. z-scores for fecundity and survival covariates"}
+plot_grid(psz,pfz)
+
+```
+
+
+
+
+
+```{r survfecpost_fig, echo=FALSE, fig.height = 7, fig.width = 9, fig.cap = "Figure. Posterior probability distributions for Ricker with survival as a covariate."}
+
+pmsurvfec <- ggplot(deriv_posteriorssurvfec)
+pmsurvfec <- pmsurvfec + geom_density(aes(x=value, color=chains), size=1.2)
+pmsurvfec <- pmsurvfec + facet_wrap(~parameters, scales="free",labeller = label_parsed)
+pmsurvfec <- pmsurvfec + theme_bw(16)+labs(colour = "Prior", x="Value", y="Density")
+pmsurvfec <- pmsurvfec + scale_color_viridis_d(end = 0.8,option = "A")
+pmsurvfec
+```
+
+
+```{r tablesurvfev, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+
+#knitr::kable(survfecparb, caption = "Parameter estimates for model with survival as a covariate.")
 
 ```
 
