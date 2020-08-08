@@ -1,12 +1,14 @@
 ---
-title: "Ricker models for harrison data"
+title: "Ricker models for Harrison data"
 output:
   html_document:
     df_print: paged
   pdf_document: default
+bibliography: chinookrpa.json
 ---
 
 ```{r load, include=FALSE}
+
 library(ggplot2)
 library(TMB)
 library(bayesplot)
@@ -74,8 +76,8 @@ newtonOption(obj, smartsearch=FALSE)
   
 opt<-nlminb(obj$par,obj$fn,obj$gr)
 
-summary(obj$report())
-sdreport(obj)
+#summary(obj$report())
+#sdreport(obj)
 simplepar<-data.frame(parameters=c("a","b","$\\sigma$"),
 	values=c(exp(obj$report()$alpha),obj$report()$beta,obj$report()$SigObs))
 
@@ -104,7 +106,10 @@ simpleB<-list(
   hibd=c(4.0,-8.5,5.0)
 )
 
-posterior_simple <- posteriorsdf(simpleB)
+#posterior_simple <- posteriorsdf(simpleB)
+
+#saveRDS(posterior_simple, "posterior_simple.rds")
+posterior_simple <- readRDS("posterior_simple.rds")
 
 #plots
 #plot_posteriors(posterior_simple$posteriors)
@@ -211,8 +216,9 @@ autoB<-list(
   hibd=c(4.0,-7.0,5.0,2)
 )
 
-posterior_ar <- posteriorsdf(autoB)
-
+#posterior_ar <- posteriorsdf(autoB)
+#saveRDS(posterior_ar, "posterior_ar.rds")
+posterior_ar <- readRDS("posterior_ar.rds")
 #plots
 #plot_posteriors(posterior_simple$posteriors)
 #posteriors of derived quantities -- the interesting ones
@@ -366,10 +372,12 @@ recursiveB<-list(
   hibd=c(4.0,-8.,1.0,5.0)
 )
 
-posterior_recursive<-posteriorsdf(recursiveB)
-recrsdf<-posterior_recursive$posteriors
+#posterior_recursive<-posteriorsdf(recursiveB)
 
-unique(recrsdf$parameters)
+#saveRDS(posterior_recursive, "posterior_recursive.rds")
+posterior_recursive <- readRDS("posterior_recursive.rds")
+
+recrsdf<-posterior_recursive$posteriors
 
 a_rb<-(recrsdf$value[recrsdf$parameters=="alphao"])
 beta_rb<-exp(recrsdf$value[recrsdf$parameters=="logbeta"])
@@ -430,7 +438,8 @@ pmrb <- pmrb + theme_bw(16)+labs(colour = "Prior", x="Value", y="Density")
 pmrb <- pmrb + scale_color_viridis_d(end = 0.8,option = "A")
 pmrb
 ```
-# Ricker model with survival as covariate
+ 
+# Ricker model with smolt to age 2 survival as covariate
 
 
 In this model we use survival as part of the model. In this version, the classic productivity parameter is replaced by $a*surv_t$ 
@@ -469,7 +478,7 @@ newtonOption(obj_surv, smartsearch=FALSE)
 
 #newtonOption(smartsearch=FALSE)
 
-opt_surv<-nlminb(obj_surv$par,obj_surv$fn,obj_surv$gr)
+opt_surv<-nlminb(obj_surv$par,obj_surv$fn,obj_surv$gr,lower = c(0.1,-13.5,-6.0), upper = c(1000.0,-8.5,5.0))
 rep_surv<-obj_surv$report()
 
 TMBAIC(opt_surv)
@@ -495,10 +504,13 @@ survB<-list(
   nchain=3,
   iter=iteracs,
   lowbd=c(0.1,-13.5,-6.0),
-  hibd=c(100.0,-8.5,5.0)
+  hibd=c(1000.0,-8.5,5.0)
 )
 
-posterior_surv <- posteriorsdf(survB)
+#posterior_surv <- posteriorsdf(survB)
+
+#saveRDS(posterior_surv, "posterior_surv.rds")
+posterior_surv <- readRDS("posterior_surv.rds")
 
 #plots
 #plot_posteriors(posterior_simple$posteriors)
@@ -567,14 +579,14 @@ pmsurv
 
 ```{r tablesurv, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
 
-knitr::kable(survparb, caption = "Parameter estimates for model with survival as a covariate.")
+knitr::kable(survparb, caption = "Parameter estimates for model with survival from smolt to age 2 as a covariate.")
 
 ```
 
 
-# Ricker model with survival and fecundity as covariates
+# Ricker model with smolt to age 2 survival and fecundity as covariates
 
-In this version of the model we describe the ricker productivity as function of two covariates. the survival index and a fecundity index. We use z-scores for these covariates. 
+In this version of the model we describe the ricker productivity as function of two covariates. The survival index and a fecundity index. We use z-scores for these covariates. 
 
 
 
@@ -633,7 +645,7 @@ newtonOption(obj_surv_fec, smartsearch=FALSE)
 #newtonOption(smartsearch=FALSE)
 
 
-opt_surv_fec<-nlminb(obj_surv_fec$par,obj_surv_fec$fn,obj_surv_fec$gr)
+opt_surv_fec<-nlminb(obj_surv_fec$par,obj_surv_fec$fn,obj_surv_fec$gr,lower = c(0.1,-20,-20,-13.5,-6.0), upper = c(100.0,20,20,-8.5,5.0))
 rep_surv_fec<-obj_surv_fec$report()
 
 TMBAIC(opt_surv_fec)
@@ -665,7 +677,9 @@ survfecB<-list(
 
 
 
-posterior_survfec <- posteriorsdf(survfecB)
+#posterior_survfec <- posteriorsdf(survfecB)
+#saveRDS(posterior_survfec, "posterior_survfec.rds")
+posterior_survfec <- readRDS("posterior_survfec.rds")
 
 #plots
 #plot_posteriors(posterior_simple$posteriors)
@@ -680,7 +694,7 @@ slsurv <- survfecdf$value[survfecdf$parameters=="sl_surv"]
 aallfec <- matrix(NA, nrow=length(SRsurv$Age2Surv), ncol=length(a_survfec))
 
 
-#need to fix this!
+
 for(i in seq_along(SRsurv$Age2Surv)){
   #aallfec[i,] <- (a_survfec+sl_fec*feczscore[i])*SRsurv$Age2Surv[i]
    aallfec[i,] <- a_survfec+ slsurv *survzscore[i]+slfec*feczscore[i]         
@@ -729,7 +743,7 @@ plot_grid(psz,pfz)
 
 
 
-```{r survfecpost_fig, echo=FALSE, fig.height = 7, fig.width = 9, fig.cap = "Figure. Posterior probability distributions for Ricker with survival as a covariate."}
+```{r survfecpost_fig, echo=FALSE, fig.height = 7, fig.width = 9, fig.cap = "Figure. Posterior probability distributions for Ricker with survival  and fecundity as a covariates."}
 
 pmsurvfec <- ggplot(deriv_posteriorssurvfec)
 pmsurvfec <- pmsurvfec + geom_density(aes(x=value, color=chains), size=1.2)
@@ -740,29 +754,182 @@ pmsurvfec
 ```
 
 
-```{r tablesurvfev, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+```{r tablesurvfec, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
 
-#knitr::kable(survfecparb, caption = "Parameter estimates for model with survival as a covariate.")
+knitr::kable(survfecparb, caption = "Parameter estimates for model with survival as a covariate.")
 
 ```
 
 
-# comparison
+
+# Ricker model with egg to age 2 survival as covariate
+
+
+In this model we use survival from egg to age 2 as part of the model. In this version, similarly to the model using the smolt to age 2 survival estimates, the classic productivity parameter is replaced by $a*surv_t$ 
+
+$R_t = a*surv_t*S_t*exp(-b*S_t) *exp(\epsilon)$
+
+
+$\epsilon \sim N(0,\sigma)$
+
+```{r echo=FALSE, warning=FALSE,message=FALSE,results='hide' }
+
+#read in the egg to age tw suviva data- need infilling for 2004
+survest <- read.csv("../data/survestimates.csv")
+
+
+
+survreg<-lm(survest$ln.egg.to.age.2.survival.~survest$Ln.smolt.to.age.2.surv.)
+#summary(survreg)
+#predict(survreg,survest)
+
+plot(survest$Ln.smolt.to.age.2.surv.,survest$ln.egg.to.age.2.survival.)
+lines(survest$Ln.smolt.to.age.2.surv.,predict(survreg,survest))
+
+SRsurv$eggAge2Surv <- exp(predict(survreg,survest))
+
+#stack spawners, recruitments, fecundity, time var prod, survival
+
+ 
+mydata_survegg<-list(obs_R=(SRsurv$R),obs_S=SRsurv$S_adj,
+  obs_survival=SRsurv$eggAge2Surv)
+  
+parameters_survegg <- list(
+  alpha=20,
+  logbeta = log(b_srm),
+  logSigObs= 0
+  )
+
+
+#compile("../R/Ricker_survival.cpp",libtmb=FALSE, "-O1 -g", DLLFLAGS="",tracesweep = TRUE)
+dyn.load(dynlib("../R/Ricker_survival"))
+
+ 
+obj_survegg<-MakeADFun(mydata_survegg,parameters_survegg,random=NULL,DLL="Ricker_survival")
+newtonOption(obj_survegg, smartsearch=FALSE)
+
+#newtonOption(smartsearch=FALSE)
+
+opt_survegg<-nlminb(obj_survegg$par,obj_survegg$fn,obj_survegg$gr,lower = c(0.1,-13.5,-6.0), upper = c(1000.0,-8.5,5.0))
+rep_survegg<-obj_survegg$report()
+
+TMBAIC(opt_survegg)
+SRsurvegg<-SRsurv
+
+SRsurvegg$residuals <- obj_survegg$report()$residuals
+SRsurvegg$model <- "survival from egg to age 2 as a covariate"
+
+
+#rsp <- ggplot(SRsurv )
+#rsp <- rsp + geom_line(aes(x=BroodYear,y=residuals),size=1.2)
+#rsp <- rsp + geom_point(aes(x=BroodYear,y=residuals, col=residuals),stroke=3)
+#rsp <- rsp + geom_hline(yintercept = 0)
+#rsp <- rsp + theme_bw(16)
+#rsp <- rsp + scale_color_viridis_c(end = 0.8)
+#rsp <- rsp + labs(title ="survival to age 2 as a covariate", x = "Spawners", y = "Recruits") 
+#rsp
+
+
+##MCMC
+survBegg<-list(
+  obj=obj_survegg,
+  nchain=3,
+  iter=iteracs,
+  lowbd=c(0.1,-13.5,-6.0),
+  hibd=c(1000.0,-8.5,5.0)
+)
+
+#posterior_survegg <- posteriorsdf(survBegg)
+#saveRDS(posterior_survegg, "posterior_survegg.rds")
+posterior_survegg <- readRDS("posterior_survegg.rds")
+
+#plots
+#plot_posteriors(posterior_simple$posteriors)
+#posteriors of derived quantities -- the interesting ones
+survdfegg <- posterior_survegg$posteriors
+
+
+
+
+a_survegg<-(survdfegg$value[survdfegg$parameters=="alpha"])
+
+aallsurvegg<-sapply(a_survegg,function(x){x*SRsurv$eggAge2Surv})
+
+alpha_survegg<-exp(aallsurvegg)
+beta_survegg<-exp(survdfegg$value[survdfegg$parameters=="logbeta"])
+Smax_survegg<-1/exp(survdfegg$value[survdfegg$parameters=="logbeta"])
+sig_survegg<-exp(survdfegg$value[survdfegg$parameters=="logSigObs"])
+
+
+survparbegg<-data.frame(parameters=c("a[2010]","a[2011]","a[2012]","a[2013]","a[avg]","b","$\\sigma$"),
+  MLE=c(exp(obj_survegg$report()$alpha*SRsurv$eggAge2Surv[meanct]),mean(exp(obj_survegg$report()$alpha*SRsurv$eggAge2Surv[meanct])),
+    obj_survegg$report()$beta,obj_survegg$report()$SigObs),
+  median=c(apply(alpha_survegg,1,median)[meanct],mean(apply(alpha_survegg,1,median)[meanct]), 
+    median(beta_survegg),median(sig_survegg)),
+  low=c(apply(alpha_survegg,1, function(x){quantile(x, probs=0.025)})[meanct],
+   mean(apply(alpha_survegg,1, function(x){quantile(x, probs=0.025)})[meanct]), quantile(beta_survegg, probs=0.025), quantile(sig_survegg, probs=0.025)),
+  high=c(apply(alpha_survegg,1,function(x){quantile(x, probs=0.975)})[meanct], 
+    mean(apply(alpha_survegg,1,function(x){quantile(x, probs=0.975)})[meanct]), quantile(beta_survegg, probs=0.975),
+    quantile(sig_survegg, probs=0.975)))
+#
+#knitr::kable(survparb)
+#
+deriv_posteriorssurvegg<-data.frame(chains=rep(survdfegg$chains[survdfegg$parameters=="logbeta"],3),
+                             parameters = rep(c("a","b","sigma"),each=length(beta_survegg)),
+                             value = c(a_survegg,beta_survegg,sig_survegg)
+                             )
+
+
+```
+
+
+
+
+```{r surveggpost_fig, echo=FALSE, fig.height = 7, fig.width = 9, fig.cap = "Figure. Posterior probability distributions for Ricker with survival from egg to age 2 as a covariate."}
+
+pmsurvegg <- ggplot(deriv_posteriorssurvegg)
+pmsurvegg <- pmsurvegg + geom_density(aes(x=value, color=chains), size=1.2)
+pmsurvegg <- pmsurvegg + facet_wrap(~parameters, scales="free",labeller = label_parsed)
+pmsurvegg <- pmsurvegg + theme_bw(16)+labs(colour = "Prior", x="Value", y="Density")
+pmsurvegg <- pmsurvegg + scale_color_viridis_d(end = 0.8,option = "A")
+pmsurvegg
+```
+
+
+```{r tablesurvegg, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+
+knitr::kable(survparbegg, caption = "Parameter estimates for model with survival as a covariate.")
+
+```
+
+
+
+# Comparison
+
+Model comparison was based on visual inspection of temporal residual patterns as well as calculated AIC values for the maximum likelihood estimates. Of all the models considered, the state-space model with time-varying productivity is the one with the lowest residual values and absence of a temporal pattern (refer to resid fig). The AIC values, however, indicate that the model that include survival from egg to age 2 as a covariate is the one with the olowest AIC value, despite of more marked emporal residuals resulting from that fit. 
+
+These statistical diagnostics are informative of how the model fits the data, but provide little insight on the potential performance of these models for management advice [@http://zotero.org/users/1231389/items/FENK4JJF]. More recently in the fisheries science literature, there has been a push to base model selection for management advice on closed-loop simulation and managent strategy evaluation analyses [@http://zotero.org/users/1231389/items/3QWU9KPF; @http://zotero.org/users/1231389/items/F6H4Q4JU].  These analyses are beyond the scope of the current RPA, but efforts to establish a MSE process for Chinook salmon in BC are ongoing.  
 
 ```{r echo=FALSE, warning=FALSE,message=FALSE ,results='hide'}
 
 SRsurv2<-SR
-SRsurv2$residuals <- obj_surv$report()$residuals
-SRsurv2$model <-" Ricker with age 2 survival"
-SRsurv2$alpha <-exp(obj_surv$report()$alphat)
+SRsurv2$residuals <- rep_surv$residuals
+SRsurv2$model <-" Ricker with survival from smolt to age 2"
+SRsurv2$alpha <-exp(rep_surv$alphat)
+
+
+SRsurvegg2<-SR
+SRsurvegg2$residuals <- obj_survegg$report()$residuals
+SRsurvegg2$model <-" Ricker with  survival from egg to age 2"
+SRsurvegg2$alpha <-exp(obj_survegg$report()$alphat)
 
 SRfec2<-SR
 SRfec2$residuals <- obj_surv_fec$report()$residuals
-SRfec2$model <-" Ricker with age 2 survival and fecundity"
+SRfec2$model <-" Ricker with survival from smolt to age 2 and fecundity"
 SRfec2$alpha <- exp(obj_surv_fec$report()$alphat)
-allfits<-rbind(SRdiagsimple,SRtimevar,SRdiagauto,SRsurv2,SRfec2)
+allfits<-rbind(SRdiagsimple,SRtimevar,SRdiagauto,SRsurv2,SRfec2,SRsurvegg2)
 
-
+#write.csv(allfits, file="../data/HarrisonFits.csv", row.names=FALSE)
 
 
 
@@ -831,11 +998,12 @@ ppa
 #
 #
 aics<-data.frame(model=c("simple ricker", "autocorrelation in Recruitment", "time-varying productivity", 
-  "Ricker with survival covariate","Ricker with survival and fecundity covariates" ),
- AIC= c(TMBAIC(opt), TMBAIC(optar),  TMBAIC(opt_timevar), TMBAIC(opt_surv),TMBAIC(opt_surv_fec)),
- deltaAIC= c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar), TMBAIC(opt_surv),TMBAIC(opt_surv_fec) )-
- min(c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar), TMBAIC(opt_timevar), TMBAIC(opt_surv),TMBAIC(opt_surv_fec))))
+  "Ricker with survival from smolt to age 2 as a covariate","Ricker with survival from smolt to age 2 and fecundity covariates", "Ricker with survival from egg to age 2 as a covariate"),
+ AIC= c(TMBAIC(opt), TMBAIC(optar),  TMBAIC(opt_timevar), TMBAIC(opt_surv),TMBAIC(opt_surv_fec),TMBAIC(opt_survegg)),
+ deltaAIC= c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar), TMBAIC(opt_surv),TMBAIC(opt_surv_fec), TMBAIC(opt_survegg) )- min(c(TMBAIC(opt), TMBAIC(optar), TMBAIC(opt_timevar), TMBAIC(opt_timevar), TMBAIC(opt_surv),TMBAIC(opt_surv_fec),TMBAIC(opt_survegg))))
 knitr::kable(aics)
 
 
 ```
+
+# References
