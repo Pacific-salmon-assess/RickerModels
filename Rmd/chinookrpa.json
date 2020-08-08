@@ -1,0 +1,122 @@
+[
+	{
+		"id": "http://zotero.org/users/1231389/items/F6H4Q4JU",
+		"type": "article-journal",
+		"title": "Management strategy evaluation: best practices",
+		"container-title": "Fish and Fisheries",
+		"page": "303-334",
+		"source": "CrossRef",
+		"URL": "http://doi.wiley.com/10.1111/faf.12104",
+		"DOI": "10.1111/faf.12104",
+		"ISSN": "14672960",
+		"shortTitle": "Management strategy evaluation",
+		"language": "en",
+		"author": [
+			{
+				"family": "Punt",
+				"given": "André E"
+			},
+			{
+				"family": "Butterworth",
+				"given": "Doug S"
+			},
+			{
+				"family": "Moor",
+				"given": "Carryn L",
+				"non-dropping-particle": "de"
+			},
+			{
+				"family": "De Oliveira",
+				"given": "José A A"
+			},
+			{
+				"family": "Haddon",
+				"given": "Malcolm"
+			}
+		],
+		"issued": {
+			"date-parts": [
+				[
+					"2016"
+				]
+			]
+		},
+		"accessed": {
+			"date-parts": [
+				[
+					"2014",
+					11,
+					24
+				]
+			]
+		}
+	},
+	{
+		"id": "http://zotero.org/users/1231389/items/3QWU9KPF",
+		"type": "article-journal",
+		"title": "Why a management procedure approach? Some positives and negatives",
+		"container-title": "ICES Journal of Marine Science",
+		"page": "613-617",
+		"volume": "64",
+		"issue": "4",
+		"source": "icesjms.oxfordjournals.org",
+		"abstract": "Butterworth, D. S. 2007. Why a management procedure approach? Some positives and negatives. – ICES Journal of Marine Science, 64: 613–617. The origin of the management procedure (MP) approach (sometimes termed management strategy evaluation), with its simulation testing of feedback-control algorithms as a necessary and structured basis for dealing with the inevitable uncertainties associated with fisheries assessments, is briefly reviewed. Also discussed are the advantages that overcome some of the difficulties of the “traditional” approach of coupling an annual “best” assessment to some harvest control rule, such as a failure to consider longer-term trade-offs properly. The MP approach does, however, also have disadvantages, such as the length of time typically required for its development and an argued inflexibility after implementation. Solutions that have been developed to overcome some of these difficulties are discussed.",
+		"URL": "http://icesjms.oxfordjournals.org/content/64/4/613",
+		"DOI": "10.1093/icesjms/fsm003",
+		"ISSN": "1054-3139, 1095-9289",
+		"shortTitle": "Why a management procedure approach?",
+		"journalAbbreviation": "ICES J. Mar. Sci.",
+		"language": "en",
+		"author": [
+			{
+				"family": "Butterworth",
+				"given": "Doug S."
+			}
+		],
+		"issued": {
+			"date-parts": [
+				[
+					"2007",
+					5,
+					1
+				]
+			]
+		},
+		"accessed": {
+			"date-parts": [
+				[
+					"2014",
+					2,
+					24
+				]
+			]
+		}
+	},
+	{
+		"id": "http://zotero.org/users/1231389/items/FENK4JJF",
+		"type": "book",
+		"title": "Fisheries Ecology and Management",
+		"publisher": "Princeton University Press",
+		"number-of-pages": "399",
+		"source": "SH328.W36 2004",
+		"ISBN": "0-691-11545-1",
+		"language": "English",
+		"author": [
+			{
+				"family": "Walters",
+				"given": "Carl J."
+			},
+			{
+				"family": "Martell",
+				"given": "Steven J. D."
+			}
+		],
+		"issued": {
+			"date-parts": [
+				[
+					"2004"
+				]
+			]
+		}
+	}
+]
