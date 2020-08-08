@@ -107,9 +107,9 @@ simpleB<-list(
 )
 
 #posterior_simple <- posteriorsdf(simpleB)
+#saveRDS(posterior_simple, "../data/posterior_simple.rds")
 
-#saveRDS(posterior_simple, "posterior_simple.rds")
-posterior_simple <- readRDS("posterior_simple.rds")
+posterior_simple <- readRDS("../data/posterior_simple.rds")
 
 #plots
 #plot_posteriors(posterior_simple$posteriors)
@@ -217,8 +217,8 @@ autoB<-list(
 )
 
 #posterior_ar <- posteriorsdf(autoB)
-#saveRDS(posterior_ar, "posterior_ar.rds")
-posterior_ar <- readRDS("posterior_ar.rds")
+#saveRDS(posterior_ar, "../data/posterior_ar.rds")
+posterior_ar <- readRDS("../data/posterior_ar.rds")
 #plots
 #plot_posteriors(posterior_simple$posteriors)
 #posteriors of derived quantities -- the interesting ones
@@ -374,8 +374,8 @@ recursiveB<-list(
 
 #posterior_recursive<-posteriorsdf(recursiveB)
 
-#saveRDS(posterior_recursive, "posterior_recursive.rds")
-posterior_recursive <- readRDS("posterior_recursive.rds")
+#saveRDS(posterior_recursive, "../data/posterior_recursive.rds")
+posterior_recursive <- readRDS("../data/posterior_recursive.rds")
 
 recrsdf<-posterior_recursive$posteriors
 
@@ -509,8 +509,8 @@ survB<-list(
 
 #posterior_surv <- posteriorsdf(survB)
 
-#saveRDS(posterior_surv, "posterior_surv.rds")
-posterior_surv <- readRDS("posterior_surv.rds")
+#saveRDS(posterior_surv, "../data/posterior_surv.rds")
+posterior_surv <- readRDS("../data/posterior_surv.rds")
 
 #plots
 #plot_posteriors(posterior_simple$posteriors)
@@ -678,8 +678,8 @@ survfecB<-list(
 
 
 #posterior_survfec <- posteriorsdf(survfecB)
-#saveRDS(posterior_survfec, "posterior_survfec.rds")
-posterior_survfec <- readRDS("posterior_survfec.rds")
+#saveRDS(posterior_survfec, "../data/posterior_survfec.rds")
+posterior_survfec <- readRDS("../data/posterior_survfec.rds")
 
 #plots
 #plot_posteriors(posterior_simple$posteriors)
@@ -840,8 +840,8 @@ survBegg<-list(
 )
 
 #posterior_survegg <- posteriorsdf(survBegg)
-#saveRDS(posterior_survegg, "posterior_survegg.rds")
-posterior_survegg <- readRDS("posterior_survegg.rds")
+#saveRDS(posterior_survegg, "../data/posterior_survegg.rds")
+posterior_survegg <- readRDS("../data/posterior_survegg.rds")
 
 #plots
 #plot_posteriors(posterior_simple$posteriors)
